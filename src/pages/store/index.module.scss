@@ -298,6 +298,113 @@
   font-weight: $font-weight-medium;
 }
 
+.memberTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+  background: $color-info-bg;
+  color: $color-primary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.memberCard {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xl $spacing-md;
+  border-radius: $radius-lg;
+  background: $color-bg-card;
+  border: 2rpx solid $color-border;
+  transition: all 0.2s ease;
+}
+
+.memberCardActive {
+  border-color: $color-primary;
+  background: $color-primary-bg;
+  box-shadow: 0 0 0 6rpx rgba(14, 165, 233, 0.1);
+}
+
+.memberAvatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56rpx;
+  background: $color-bg;
+  margin-bottom: $spacing-sm;
+}
+
+.memberName {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.memberRelation {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.checkBadge {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: $color-primary;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: $font-weight-bold;
+}
+
+.receiptTypeBadge {
+  position: absolute;
+  bottom: 8rpx;
+  left: 8rpx;
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  backdrop-filter: blur(4px);
+}
+
+.rcpt_invoice {
+  background: rgba(239, 68, 68, 0.92);
+  color: #fff;
+}
+.rcpt_receipt {
+  background: rgba(14, 165, 233, 0.92);
+  color: #fff;
+}
+.rcpt_prescription {
+  background: rgba(16, 185, 129, 0.92);
+  color: #fff;
+}
+.rcpt_other {
+  background: rgba(100, 116, 139, 0.92);
+  color: #fff;
+}
+
+.mono {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: $font-size-sm !important;
+  letter-spacing: 0.5rpx;
+}
+
 .totalPrice {
   font-size: $font-size-lg;
   font-weight: $font-weight-bold;

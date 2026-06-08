@@ -37,6 +37,8 @@ const ProfilePage: React.FC = () => {
   const reminders = useAppStore((s) => s.reminders);
   const favorites = useAppStore((s) => s.favorites);
   const medicationLogs = useAppStore((s) => s.medicationLogs);
+  const getLowInventories = useAppStore((s) => s.getLowInventories);
+  const lowInventories = useMemo(() => getLowInventories(), [getLowInventories]);
 
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
@@ -62,15 +64,23 @@ const ProfilePage: React.FC = () => {
 
   const handleExport = () => {
     const totalAmount = storeRecords.reduce((sum, r) => sum + r.totalPrice, 0);
+    const hasReceiptCount = storeRecords.filter(
+      (r) =>
+        (r.receipts && r.receipts.length > 0) ||
+        (r.receiptImages && r.receiptImages.length > 0)
+    ).length;
     const medicineList = storeRecords
-      .map(
-        (r, i) =>
-          `${i + 1}. ${r.medicineName} × ${r.quantity} (${r.batchNumber}) - ¥${r.totalPrice.toFixed(2)}`
-      )
+      .map((r, i) => {
+        const has =
+          (r.receipts && r.receipts.length > 0) ||
+          (r.receiptImages && r.receiptImages.length > 0);
+        const tag = has ? ` 🧾有票据` : '';
+        return `${i + 1}. ${r.medicineName} × ${r.quantity} (${r.batchNumber || '—'})${tag} - ¥${r.totalPrice.toFixed(2)}`;
+      })
       .join('\n');
 
     Taro.setClipboardData({
-      data: `【购药清单】\n记录数量: ${storeRecords.length}笔\n累计金额: ¥${totalAmount.toFixed(2)}\n\n明细:\n${medicineList}\n\n--- 来自药品追溯小程序 ---`,
+      data: `【购药清单】\n记录数量: ${storeRecords.length}笔\n累计金额: ¥${totalAmount.toFixed(2)}\n含票据: ${hasReceiptCount}笔\n\n明细:\n${medicineList}\n\n--- 来自药品追溯小程序 ---`,
       success: () => {
         Taro.showToast({ title: '清单已复制', icon: 'success' });
       },
@@ -196,6 +206,46 @@ const ProfilePage: React.FC = () => {
             </Text>
           </View>
         </View>
+
+        {lowInventories.length > 0 && (
+          <View
+            className={styles.invAlertCard}
+            onClick={() => Taro.switchTab({ url: '/pages/store/index' })}
+          >
+            <View className={styles.invAlertHeader}>
+              <View>
+                <Text className={styles.invAlertTitle}>⚠️ 家庭药箱库存告急</Text>
+                <Text className={styles.invAlertSub}>
+                  共 {lowInventories.length} 种药品库存不足 · 点击前往补充
+                </Text>
+              </View>
+              <Text className={styles.invAlertArrow}>→</Text>
+            </View>
+            <View>
+              {lowInventories.slice(0, 4).map((inv) => (
+                <View key={inv.id} className={styles.invAlertItem}>
+                  <Text className={styles.invAlertName}>
+                    💊 {inv.medicineName}（{inv.memberName}）
+                  </Text>
+                  <Text
+                    className={classnames(
+                      inv.remainingQuantity <= 0 ? styles.invAlertNone : styles.invAlertLow
+                    )}
+                  >
+                    {inv.remainingQuantity <= 0
+                      ? '已用完'
+                      : `剩 ${inv.remainingQuantity}（阈值≤${inv.threshold}）`}
+                  </Text>
+                </View>
+              ))}
+              {lowInventories.length > 4 && (
+                <Text className={styles.invAlertSub}>
+                  还有 {lowInventories.length - 4} 种…
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
 
         <View className={styles.memberCard}>
           <View className={styles.memberHeader}>

@@ -68,6 +68,8 @@ const MedicinePage: React.FC = () => {
   const queryRecords = useAppStore((s) => s.queryRecords);
   const medicationLogs = useAppStore((s) => s.medicationLogs);
   const markMedication = useAppStore((s) => s.markMedication);
+  const getLowInventories = useAppStore((s) => s.getLowInventories);
+  const lowInventories = useMemo(() => getLowInventories(), [getLowInventories]);
 
   useEffect(() => {
     if (activeMedicineTab && activeMedicineTab !== activeTab) {
@@ -365,6 +367,59 @@ const MedicinePage: React.FC = () => {
           </View>
         )}
       </View>
+
+      {lowInventories.length > 0 && (
+        <View
+          className={classnames(styles.todayPanel, styles.lowInvPanel)}
+          onClick={() => Taro.switchTab({ url: '/pages/store/index' })}
+        >
+          <View className={styles.todayHeader}>
+            <Text className={classnames(styles.todayTitle, styles.danger)}>
+              ⚠️ 家庭药箱库存告急
+            </Text>
+            <Text className={styles.todaySub}>共 {lowInventories.length} 种</Text>
+          </View>
+          <View>
+            {lowInventories.slice(0, 5).map((inv) => (
+              <View key={inv.id} className={styles.lowInvItem}>
+                <View style={{ flex: 1 }}>
+                  <Text className={styles.lowInvName}>
+                    💊 {inv.medicineName}
+                    <View
+                      className={classnames(
+                        styles.metaBadge,
+                        styles.memberBadgeSmall
+                      )}
+                      style={{ marginLeft: 12 }}
+                    >
+                      👤 {inv.memberName}
+                    </View>
+                  </Text>
+                  <Text className={styles.lowInvMeta}>
+                    批号: {inv.batchNumber || '—'} · 规格: {inv.specification || '—'}
+                  </Text>
+                </View>
+                <View
+                  className={classnames(
+                    inv.remainingQuantity <= 0
+                      ? styles.qtyBadgeNone
+                      : styles.qtyBadgeLow
+                  )}
+                >
+                  {inv.remainingQuantity <= 0
+                    ? `已用完 (阈值≤${inv.threshold})`
+                    : `剩 ${inv.remainingQuantity} (阈值≤${inv.threshold})`}
+                </View>
+              </View>
+            ))}
+            {lowInventories.length > 5 && (
+              <Text className={styles.todaySub}>
+                还有 {lowInventories.length - 5} 种… 点击查看 →
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
 
       {memberReminders.length === 0 ? (
         <EmptyState

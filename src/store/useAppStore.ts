@@ -11,6 +11,7 @@ import type {
   NearbyStore,
   MedicationLog,
   MedicationStatus,
+  MedicineInventory,
 } from '@/types';
 
 const STORAGE_KEY = 'medicine_trace_app_state_v1';
@@ -24,6 +25,7 @@ interface PersistedState {
   reports: AbnormalReport[];
   reminders: MedicineReminder[];
   medicationLogs: MedicationLog[];
+  inventories: MedicineInventory[];
   activeMedicineTab?: 'reminders' | 'favorites' | 'recalls';
 }
 
@@ -46,6 +48,9 @@ interface AppState extends PersistedState {
     status: MedicationStatus,
     info?: Partial<{ medicineName: string; medicineId: string; memberId: string; memberName: string; dosage: string; scheduledTime: string }>
   ) => void;
+  addInventoryFromRecord: (record: StoreRecord) => void;
+  deductInventory: (medicineId: string, memberId: string, amount: number) => void;
+  getLowInventories: () => MedicineInventory[];
   addFamilyMember: (member: FamilyMember) => void;
   getBarcodeQueryInfo: (barcode: string) => { count: number; lastTime: string | null };
   _hydrated: boolean;
@@ -96,10 +101,30 @@ const defaultStoreRecords: StoreRecord[] = [
     medicineId: 'med1',
     medicineName: '布洛芬缓释胶囊',
     batchNumber: '20240501A',
+    barcode: '8123456789012',
+    memberId: '1',
+    memberName: '本人',
     quantity: 2,
     unitPrice: 28.5,
     totalPrice: 57,
     isSplitSale: false,
+    notes: '备用药',
+  },
+];
+
+const defaultInventories: MedicineInventory[] = [
+  {
+    id: 'inv_sr1',
+    medicineId: 'med1',
+    medicineName: '布洛芬缓释胶囊',
+    batchNumber: '20240501A',
+    specification: '0.3g*20粒/盒',
+    memberId: '1',
+    memberName: '本人',
+    unitQuantity: 2,
+    remainingQuantity: 2,
+    threshold: 1,
+    lastUpdated: new Date().toISOString().split('T')[0],
   },
 ];
 
@@ -162,6 +187,7 @@ const saveState = (state: PersistedState) => {
       reports: state.reports,
       reminders: state.reminders,
       medicationLogs: state.medicationLogs,
+      inventories: state.inventories,
       activeMedicineTab: state.activeMedicineTab,
     };
     Taro.setStorageSync(STORAGE_KEY, JSON.stringify(toSave));
@@ -170,18 +196,42 @@ const saveState = (state: PersistedState) => {
   }
 };
 
+const migrateStoreRecords = (
+  records: StoreRecord[],
+  fallbackMemberId: string,
+  fallbackMemberName: string
+): StoreRecord[] => {
+  return records.map((r) => {
+    if (r.memberId && r.memberName) return r;
+    return {
+      ...r,
+      memberId: r.memberId || fallbackMemberId,
+      memberName: r.memberName || fallbackMemberName,
+      barcode: r.barcode || '',
+    };
+  });
+};
+
 export const useAppStore = create<AppState>((set, get) => {
   const loaded = loadState();
+  const tmpMemberId = loaded.currentMemberId || '1';
+  const tmpMembers = loaded.familyMembers?.length ? loaded.familyMembers : defaultFamilyMembers;
+  const tmpMember = tmpMembers.find((m) => m.id === tmpMemberId);
+  const fallbackMemberName = tmpMember?.name || '本人';
+
+  const loadedRecords = loaded.storeRecords?.length ? loaded.storeRecords : defaultStoreRecords;
+  const migratedRecords = migrateStoreRecords(loadedRecords, tmpMemberId, fallbackMemberName);
 
   const initial: PersistedState = {
-    currentMemberId: loaded.currentMemberId || '1',
-    familyMembers: loaded.familyMembers?.length ? loaded.familyMembers : defaultFamilyMembers,
+    currentMemberId: tmpMemberId,
+    familyMembers: tmpMembers,
     favorites: loaded.favorites || [],
     queryRecords: loaded.queryRecords?.length ? loaded.queryRecords : defaultQueryRecords,
-    storeRecords: loaded.storeRecords?.length ? loaded.storeRecords : defaultStoreRecords,
+    storeRecords: migratedRecords,
     reports: loaded.reports?.length ? loaded.reports : defaultReports,
     reminders: loaded.reminders?.length ? loaded.reminders : defaultReminders,
     medicationLogs: loaded.medicationLogs?.length ? loaded.medicationLogs : [],
+    inventories: loaded.inventories?.length ? loaded.inventories : defaultInventories,
     activeMedicineTab: loaded.activeMedicineTab || 'reminders',
   };
 
@@ -230,7 +280,89 @@ export const useAppStore = create<AppState>((set, get) => {
 
     addStoreRecord: (record) => {
       set((state) => ({ storeRecords: [record, ...state.storeRecords] }));
+      get().addInventoryFromRecord(record);
       get().persist();
+    },
+
+    addInventoryFromRecord: (record) => {
+      set((state) => {
+        const qty =
+          record.isSplitSale && record.splitQuantity
+            ? record.splitQuantity
+            : record.quantity;
+        const spec =
+          mockMedicines.find((m) => m.id === record.medicineId)?.specification ||
+          '';
+        const existing = state.inventories.find(
+          (i) =>
+            i.medicineId === record.medicineId &&
+            i.memberId === record.memberId &&
+            i.batchNumber === record.batchNumber
+        );
+        if (existing) {
+          return {
+            inventories: state.inventories.map((i) =>
+              i.id === existing.id
+                ? {
+                    ...i,
+                    remainingQuantity: i.remainingQuantity + qty,
+                    lastUpdated: new Date().toISOString().split('T')[0],
+                  }
+                : i
+            ),
+          };
+        }
+        const newInv: MedicineInventory = {
+          id: 'inv_' + record.id + '_' + Date.now().toString(36),
+          medicineId: record.medicineId,
+          medicineName: record.medicineName,
+          batchNumber: record.batchNumber,
+          specification: spec,
+          memberId: record.memberId,
+          memberName: record.memberName,
+          unitQuantity: qty,
+          remainingQuantity: qty,
+          threshold: qty > 5 ? 2 : 1,
+          lastUpdated: new Date().toISOString().split('T')[0],
+        };
+        return { inventories: [newInv, ...state.inventories] };
+      });
+    },
+
+    deductInventory: (medicineId, memberId, amount) => {
+      set((state) => {
+        const candidates = state.inventories.filter(
+          (i) =>
+            i.medicineId === medicineId &&
+            i.memberId === memberId &&
+            i.remainingQuantity > 0
+        );
+        if (candidates.length === 0) return {};
+        candidates.sort((a, b) => a.lastUpdated.localeCompare(b.lastUpdated));
+        let remaining = amount;
+        const updatedIds = new Map<string, number>();
+        for (const inv of candidates) {
+          if (remaining <= 0) break;
+          const deduct = Math.min(inv.remainingQuantity, remaining);
+          updatedIds.set(inv.id, inv.remainingQuantity - deduct);
+          remaining -= deduct;
+        }
+        return {
+          inventories: state.inventories.map((i) =>
+            updatedIds.has(i.id)
+              ? {
+                  ...i,
+                  remainingQuantity: updatedIds.get(i.id)!,
+                  lastUpdated: new Date().toISOString().split('T')[0],
+                }
+              : i
+          ),
+        };
+      });
+    },
+
+    getLowInventories: () => {
+      return get().inventories.filter((i) => i.remainingQuantity <= i.threshold);
     },
 
     addReport: (report) => {
@@ -253,6 +385,8 @@ export const useAppStore = create<AppState>((set, get) => {
     },
 
     markMedication: (reminderId, date, timeIndex, status, info) => {
+      let shouldDeduct = false;
+      let shouldRefund = false;
       set((state) => {
         const reminder = state.reminders.find((r) => r.id === reminderId);
         const existing = state.medicationLogs.find(
@@ -261,20 +395,35 @@ export const useAppStore = create<AppState>((set, get) => {
             l.date === date &&
             l.timeIndex === timeIndex
         );
+        if (existing && existing.status !== 'taken' && status === 'taken') {
+          shouldDeduct = true;
+        }
+        if (existing && existing.status === 'taken' && status !== 'taken') {
+          shouldRefund = true;
+        }
+        if (!existing && status === 'taken') {
+          shouldDeduct = true;
+        }
         const now = new Date().toISOString();
+        const medicineId = info?.medicineId || reminder?.medicineId || '';
+        const memberId = info?.memberId || reminder?.memberId || '';
         if (existing) {
           return {
             medicationLogs: state.medicationLogs.map((l) =>
               l.id === existing.id ? { ...l, status, updatedAt: now } : l
             ),
-          };
+            _medDeduct: shouldDeduct,
+            _medRefund: shouldRefund,
+            _medId: medicineId,
+            _medMember: memberId,
+          } as any;
         }
         const newLog: MedicationLog = {
           id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
           reminderId,
-          medicineId: info?.medicineId || reminder?.medicineId || '',
+          medicineId,
           medicineName: info?.medicineName || reminder?.medicineName || '',
-          memberId: info?.memberId || reminder?.memberId || '',
+          memberId,
           memberName: info?.memberName || reminder?.memberName || '',
           dosage: info?.dosage || reminder?.dosage || '',
           date,
@@ -283,8 +432,21 @@ export const useAppStore = create<AppState>((set, get) => {
           status,
           updatedAt: now,
         };
-        return { medicationLogs: [newLog, ...state.medicationLogs] };
+        return {
+          medicationLogs: [newLog, ...state.medicationLogs],
+          _medDeduct: shouldDeduct,
+          _medRefund: shouldRefund,
+          _medId: medicineId,
+          _medMember: memberId,
+        } as any;
       });
+      const s = get() as any;
+      if (s._medDeduct && s._medId && s._medMember) {
+        get().deductInventory(s._medId, s._medMember, 1);
+      }
+      if (s._medRefund && s._medId && s._medMember) {
+        get().deductInventory(s._medId, s._medMember, -1);
+      }
       get().persist();
     },
 

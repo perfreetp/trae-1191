@@ -70,6 +70,14 @@ export interface MedicineReminder {
   notes?: string;
 }
 
+export type ReceiptType = 'invoice' | 'receipt' | 'prescription' | 'other';
+
+export interface ReceiptItem {
+  url: string;
+  type: ReceiptType;
+  note?: string;
+}
+
 export interface StoreRecord {
   id: string;
   storeName: string;
@@ -80,6 +88,9 @@ export interface StoreRecord {
   medicineId: string;
   medicineName: string;
   batchNumber: string;
+  barcode?: string;
+  memberId: string;
+  memberName: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -87,7 +98,22 @@ export interface StoreRecord {
   isSplitSale: boolean;
   splitQuantity?: number;
   receiptImages?: string[];
+  receipts?: ReceiptItem[];
   notes?: string;
+}
+
+export interface MedicineInventory {
+  id: string;
+  medicineId: string;
+  medicineName: string;
+  batchNumber: string;
+  specification?: string;
+  memberId: string;
+  memberName: string;
+  unitQuantity: number;
+  remainingQuantity: number;
+  threshold: number;
+  lastUpdated: string;
 }
 
 export interface AbnormalReport {

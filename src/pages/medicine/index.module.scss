@@ -783,6 +783,69 @@
   box-shadow: 0 8rpx 24rpx rgba($color-primary, 0.08);
 }
 
+.lowInvPanel {
+  background: linear-gradient(135deg, #FEF2F2 0%, #FFF7ED 100%);
+  border-color: rgba($color-error, 0.18);
+  box-shadow: 0 8rpx 24rpx rgba($color-error, 0.1);
+  cursor: pointer;
+}
+
+.danger {
+  color: $color-error !important;
+}
+
+.lowInvItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: $radius-lg;
+  border-left: 8rpx solid $color-error;
+  margin-bottom: $spacing-sm;
+}
+
+.lowInvName {
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lowInvMeta {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  margin-top: 6rpx;
+}
+
+.qtyBadgeLow {
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: $color-warning-bg;
+  color: $color-warning;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  white-space: nowrap;
+}
+
+.qtyBadgeNone {
+  padding: 10rpx 20rpx;
+  border-radius: 999rpx;
+  background: $color-error-bg;
+  color: $color-error;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  white-space: nowrap;
+}
+
+.memberBadgeSmall {
+  padding: 4rpx 12rpx !important;
+  font-size: $font-size-xs !important;
+  background: $color-info-bg;
+  color: $color-primary;
+}
+
 .todayHeader {
   display: flex;
   align-items: center;

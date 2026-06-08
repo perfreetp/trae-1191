@@ -471,3 +471,74 @@
   font-size: $font-size-xs;
   color: $color-text-secondary;
 }
+
+.invAlertCard {
+  background: linear-gradient(135deg, #FEF2F2 0%, #FFF7ED 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  border: 2rpx solid rgba(239, 68, 68, 0.15);
+  cursor: pointer;
+  box-shadow: 0 8rpx 24rpx rgba(239, 68, 68, 0.08);
+}
+
+.invAlertHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.invAlertTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.invAlertSub {
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}
+
+.invAlertArrow {
+  font-size: 36rpx;
+  color: $color-error;
+  font-weight: $font-weight-bold;
+}
+
+.invAlertItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm $spacing-md;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: $radius-lg;
+  border-left: 6rpx solid $color-error;
+  margin-bottom: $spacing-sm;
+}
+
+.invAlertName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.invAlertLow {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-warning;
+  background: $color-warning-bg;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+.invAlertNone {
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+  background: $color-error-bg;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+}

@@ -18,12 +18,19 @@ import {
 } from '@/store/useAppStore';
 import EmptyState from '@/components/EmptyState';
 import { getStoreTypeLabel, generateId, formatDate } from '@/utils';
-import type { NearbyStore, Medicine, StoreRecord } from '@/types';
+import type { NearbyStore, Medicine, StoreRecord, ReceiptType, ReceiptItem } from '@/types';
 import styles from './index.module.scss';
 
 type TabType = 'nearby' | 'records';
-type AddStep = 0 | 1 | 2 | 3 | 4;
+type AddStep = 0 | 0.5 | 0.75 | 1 | 2 | 3 | 4;
 type SourceType = 'scan' | 'favorite' | 'recent' | 'manual' | 'split';
+
+const RECEIPT_TYPES: Array<{ key: ReceiptType; label: string; icon: string }> = [
+  { key: 'invoice', label: '发票', icon: '🧾' },
+  { key: 'receipt', label: '小票', icon: '📃' },
+  { key: 'prescription', label: '处方单', icon: '💊' },
+  { key: 'other', label: '其他', icon: '🗂️' },
+];
 
 interface StoreDraft {
   mode: 'normal' | 'split';
@@ -31,6 +38,8 @@ interface StoreDraft {
   medicineName: string;
   barcode: string;
   batchNumber: string;
+  memberId: string;
+  memberName: string;
   storeId: string;
   storeName: string;
   storeAddress: string;
@@ -42,6 +51,7 @@ interface StoreDraft {
   isSplitSale: boolean;
   splitQuantity: string;
   receiptImages: string[];
+  receipts: ReceiptItem[];
   notes: string;
   purchaseDate: string;
 }
@@ -77,15 +87,18 @@ const StorePage: React.FC = () => {
     const d = consumeDraftStoreRecord();
     if (d && d.medicineId) {
       resetDraft(d.isSplitSale ? 'split' : 'normal');
+      const barcodeOrBatch = (d as any).barcode || '';
       setDraft((old) => ({
         ...old,
         medicineId: d.medicineId || '',
         medicineName: d.medicineName || '',
-        barcode: d.batchNumber ? '' : (d as any).barcode || '',
+        barcode: barcodeOrBatch ? barcodeOrBatch : (d as any).barcode || '',
         batchNumber: d.batchNumber || '',
         isSplitSale: !!d.isSplitSale,
+        memberId: currentMemberId,
+        memberName: currentMember?.name || '本人',
       }));
-      setStep((0.5 as any));
+      setStep((0.75 as any));
       setShowModal(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -112,14 +125,14 @@ const StorePage: React.FC = () => {
 
   const filteredRecords = useMemo(() => {
     return storeRecords.filter((r) => {
-      if (filter.memberId !== 'all') {
-        if (r.medicineId && r.medicineId.startsWith('custom_')) {
-          // 无明确成员关联的记录，对「全部」显示
-          if (filter.memberId !== 'all') return false;
-        }
-      }
+      if (filter.memberId !== 'all' && r.memberId !== filter.memberId) return false;
       if (filter.onlySplit && !r.isSplitSale) return false;
-      if (filter.onlyHasReceipt && !(r.receiptImages && r.receiptImages.length > 0)) return false;
+      if (filter.onlyHasReceipt) {
+        const has =
+          (r.receiptImages && r.receiptImages.length > 0) ||
+          (r.receipts && r.receipts.length > 0);
+        if (!has) return false;
+      }
       return true;
     });
   }, [storeRecords, filter]);
@@ -137,6 +150,8 @@ const StorePage: React.FC = () => {
     medicineName: '',
     barcode: '',
     batchNumber: '',
+    memberId: currentMemberId,
+    memberName: currentMember?.name || '本人',
     storeId: sortedStores[0]?.id || '',
     storeName: sortedStores[0]?.name || '',
     storeAddress: sortedStores[0]?.address || '',
@@ -148,18 +163,22 @@ const StorePage: React.FC = () => {
     isSplitSale: false,
     splitQuantity: '',
     receiptImages: [],
+    receipts: [],
     notes: '',
     purchaseDate: todayISO(),
   });
 
   const resetDraft = (mode: 'normal' | 'split' = 'normal') => {
     const def = sortedStores[0];
+    const cm = familyMembers.find((m) => m.id === currentMemberId) || familyMembers[0];
     setDraft({
       mode,
       medicineId: '',
       medicineName: '',
       barcode: '',
       batchNumber: '',
+      memberId: cm?.id || '1',
+      memberName: cm?.name || '本人',
       storeId: def?.id || '',
       storeName: def?.name || '',
       storeAddress: def?.address || '',
@@ -171,6 +190,7 @@ const StorePage: React.FC = () => {
       isSplitSale: mode === 'split',
       splitQuantity: '',
       receiptImages: [],
+      receipts: [],
       notes: '',
       purchaseDate: todayISO(),
     });
@@ -227,7 +247,7 @@ const StorePage: React.FC = () => {
       barcode: m.barcode,
       batchNumber: m.batchNumber,
     }));
-    setStep(1);
+    setStep(0.75 as any);
   };
 
   const submitManual = () => {
@@ -235,6 +255,11 @@ const StorePage: React.FC = () => {
       Taro.showToast({ title: '请输入药品名称', icon: 'none' });
       return;
     }
+    setStep(0.75 as any);
+  };
+
+  const selectMember = (m: FamilyMember) => {
+    setDraft((d) => ({ ...d, memberId: m.id, memberName: m.name }));
     setStep(1);
   };
 
@@ -254,13 +279,19 @@ const StorePage: React.FC = () => {
 
   const uploadReceipt = async () => {
     try {
+      const remaining = 3 - draft.receipts.length;
       const res = await Taro.chooseImage({
-        count: 3 - draft.receiptImages.length,
+        count: remaining,
         sizeType: ['compressed'],
       });
+      if (!res.tempFilePaths || res.tempFilePaths.length === 0) return;
+      const defaultType: ReceiptType = 'receipt';
       setDraft((d) => ({
         ...d,
-        receiptImages: [...d.receiptImages, ...res.tempFilePaths].slice(0, 3),
+        receipts: [
+          ...d.receipts,
+          ...res.tempFilePaths.map((url) => ({ url, type: defaultType })),
+        ].slice(0, 3),
       }));
       Taro.showToast({ title: '已添加票据', icon: 'success' });
     } catch (e) {
@@ -271,7 +302,16 @@ const StorePage: React.FC = () => {
   const removeReceipt = (idx: number) => {
     setDraft((d) => ({
       ...d,
-      receiptImages: d.receiptImages.filter((_, i) => i !== idx),
+      receipts: d.receipts.filter((_, i) => i !== idx),
+    }));
+  };
+
+  const setReceiptType = (idx: number, type: ReceiptType) => {
+    setDraft((d) => ({
+      ...d,
+      receipts: d.receipts.map((r, i) =>
+        i === idx ? { ...r, type } : r
+      ),
     }));
   };
 
@@ -303,6 +343,9 @@ const StorePage: React.FC = () => {
       medicineId: draft.medicineId || 'custom_' + Date.now(),
       medicineName: draft.medicineName,
       batchNumber: draft.batchNumber,
+      barcode: draft.barcode || undefined,
+      memberId: draft.memberId,
+      memberName: draft.memberName,
       quantity: draft.isSplitSale
         ? parseFloat(draft.splitQuantity || '0') || 0
         : draft.quantity,
@@ -312,7 +355,8 @@ const StorePage: React.FC = () => {
       splitQuantity: draft.isSplitSale
         ? parseFloat(draft.splitQuantity || '0') || 0
         : undefined,
-      receiptImages: draft.receiptImages.length ? draft.receiptImages : undefined,
+      receiptImages: draft.receipts.map((r) => r.url),
+      receipts: draft.receipts.length ? draft.receipts : undefined,
       notes: draft.notes || undefined,
     };
     addStoreRecord(record);
@@ -342,9 +386,19 @@ const StorePage: React.FC = () => {
         if (!rec) return;
         try {
           const imgs = await Taro.chooseImage({ count: 3 });
+          const existing: ReceiptItem[] =
+            rec.receipts && rec.receipts.length > 0
+              ? rec.receipts
+              : (rec.receiptImages || []).map((url) => ({ url, type: 'receipt' as ReceiptType }));
+          const newItems: ReceiptItem[] = (imgs.tempFilePaths || []).map((url) => ({
+            url,
+            type: 'receipt',
+          }));
+          const combined = [...existing, ...newItems].slice(0, 3);
           const updated: StoreRecord = {
             ...rec,
-            receiptImages: [...(rec.receiptImages || []), ...imgs.tempFilePaths].slice(0, 3),
+            receiptImages: combined.map((r) => r.url),
+            receipts: combined,
           };
           useAppStore.setState((s) => ({
             storeRecords: s.storeRecords.map((r) =>
@@ -657,31 +711,54 @@ const StorePage: React.FC = () => {
 
       <View className={styles.field}>
         <Text className={styles.fieldLabel}>
-          票据照片（最多3张，可选）
+          票据照片（最多3张，可选择类型）
         </Text>
         <View className={styles.imgGrid}>
-          {draft.receiptImages.map((img, i) => (
-            <View key={i} className={styles.imgBox}>
-              <Image
-                src={img}
-                className={styles.img}
-                mode="aspectFill"
-                onClick={() => {
-                  Taro.previewImage({
-                    urls: draft.receiptImages,
-                    current: img,
-                  });
-                }}
-              />
-              <View
-                className={styles.imgDel}
-                onClick={() => removeReceipt(i)}
-              >
-                ✕
+          {draft.receipts.map((r, i) => {
+            const typeItem = RECEIPT_TYPES.find((t) => t.key === r.type);
+            return (
+              <View key={i} className={styles.imgBox}>
+                <Image
+                  src={r.url}
+                  className={styles.img}
+                  mode="aspectFill"
+                  onClick={() => {
+                    Taro.previewImage({
+                      urls: draft.receipts.map((rr) => rr.url),
+                      current: r.url,
+                    });
+                  }}
+                />
+                <View
+                  className={styles.imgDel}
+                  onClick={() => removeReceipt(i)}
+                >
+                  ✕
+                </View>
+                <View
+                  className={classnames(
+                    styles.receiptTypeBadge,
+                    styles[`rcpt_${r.type}`]
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    Taro.showActionSheet({
+                      itemList: RECEIPT_TYPES.map((t) => `${t.icon} ${t.label}`),
+                      success: (res) => {
+                        const idx = res.tapIndex;
+                        if (idx !== undefined && idx >= 0 && idx < RECEIPT_TYPES.length) {
+                          setReceiptType(i, RECEIPT_TYPES[idx].key);
+                        }
+                      },
+                    });
+                  }}
+                >
+                  {typeItem?.icon} {typeItem?.label}
+                </View>
               </View>
-            </View>
-          ))}
-          {draft.receiptImages.length < 3 && (
+            );
+          })}
+          {draft.receipts.length < 3 && (
             <View className={styles.imgAdd} onClick={uploadReceipt}>
               <Text className={styles.imgAddIcon}>＋</Text>
               <Text className={styles.imgAddText}>添加票据</Text>
@@ -707,12 +784,26 @@ const StorePage: React.FC = () => {
       <Text className={styles.stepTitle}>确认登记信息</Text>
       <View className={styles.summaryCard}>
         <View className={styles.summaryRow}>
-          <Text className={styles.summaryLabel}>💊 药品</Text>
+          <Text className={styles.summaryLabel}>� 购买人</Text>
+          <Text className={styles.summaryValue}>
+            {draft.memberName || '本人'}
+          </Text>
+        </View>
+        <View className={styles.summaryRow}>
+          <Text className={styles.summaryLabel}>� 药品</Text>
           <Text className={styles.summaryValue}>
             {draft.medicineName}
             {draft.batchNumber ? `（${draft.batchNumber}）` : ''}
           </Text>
         </View>
+        {draft.barcode && (
+          <View className={styles.summaryRow}>
+            <Text className={styles.summaryLabel}>📱 追溯包装码</Text>
+            <Text className={classnames(styles.summaryValue, styles.mono)}>
+              {draft.barcode}
+            </Text>
+          </View>
+        )}
         <View className={styles.summaryRow}>
           <Text className={styles.summaryLabel}>🏪 门店</Text>
           <Text className={styles.summaryValue}>{draft.storeName}</Text>
@@ -747,20 +838,21 @@ const StorePage: React.FC = () => {
             {formatDate(draft.purchaseDate)}
           </Text>
         </View>
-        {draft.receiptImages.length > 0 && (
+        {draft.receipts.length > 0 && (
           <View className={styles.summaryRow}>
             <Text className={styles.summaryLabel}>🧾 票据</Text>
             <View className={styles.receiptMiniList}>
-              {draft.receiptImages.map((img, i) => (
-                <Image
-                  key={i}
-                  src={img}
-                  mode="aspectFill"
-                  className={styles.receiptMini}
-                />
+              {draft.receipts.map((r, i) => (
+                <View key={i} style={{ position: 'relative' }}>
+                  <Image
+                    src={r.url}
+                    mode="aspectFill"
+                    className={styles.receiptMini}
+                  />
+                </View>
               ))}
               <Text style={{ marginLeft: 8, fontSize: 24, color: '#94A3B8' }}>
-                {draft.receiptImages.length}张
+                {draft.receipts.length}张
               </Text>
             </View>
           </View>
@@ -772,8 +864,42 @@ const StorePage: React.FC = () => {
     </View>
   );
 
+  const renderStepMember = () => (
+    <View className={styles.stepBody}>
+      <Text style={{ fontSize: 28, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
+        👤 给谁买的药？
+      </Text>
+      <Text style={{ fontSize: 24, color: '#64748B', marginBottom: 28 }}>
+        登记后可在「购买记录」按成员筛选查看
+      </Text>
+      <View style={{ display: 'flex', gap: 16 }}>
+        {familyMembers.map((m) => {
+          const active = draft.memberId === m.id;
+          return (
+            <View
+              key={m.id}
+              className={classnames(
+                styles.memberCard,
+                active && styles.memberCardActive
+              )}
+              onClick={() => selectMember(m)}
+            >
+              <View className={styles.memberAvatar}>{m.avatar}</View>
+              <Text className={styles.memberName}>{m.name}</Text>
+              <Text className={styles.memberRelation}>
+                {m.relation === 'self' ? '本人' : m.relation === 'mother' ? '妈妈' : m.relation === 'father' ? '爸爸' : m.relation || '其他'}
+              </Text>
+              {active && <View className={styles.checkBadge}>✓</View>}
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   const renderBody = () => {
     if (step === (0.5 as any)) return renderStepHalf();
+    if (step === (0.75 as any)) return renderStepMember();
     switch (step) {
       case 0:
         return renderStep0();
@@ -980,7 +1106,12 @@ const StorePage: React.FC = () => {
                   onClick={() => setSelectedRecordId(record.id)}
                 >
                   <View className={styles.recordHeader}>
-                    <Text className={styles.recordStore}>{record.storeName}</Text>
+                    <View style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <Text className={styles.recordStore}>{record.storeName}</Text>
+                      <View className={styles.memberTag}>
+                        👤 {record.memberName || '本人'}
+                      </View>
+                    </View>
                     <Text className={styles.recordDate}>{record.purchaseDate}</Text>
                   </View>
                   <View className={styles.recordBody}>
@@ -1006,29 +1137,37 @@ const StorePage: React.FC = () => {
                         </View>
                       )}
                     </View>
-                    {record.receiptImages && record.receiptImages.length > 0 && (
-                      <View className={styles.recordReceiptRow}>
-                        <Text style={{ fontSize: 22, color: '#94A3B8', marginRight: 12 }}>
-                          🧾 票据:
-                        </Text>
-                        <View className={styles.recordReceiptList}>
-                          {record.receiptImages.map((img, i) => (
-                            <Image
-                              key={i}
-                              src={img}
-                              mode="aspectFill"
-                              className={styles.recordReceiptImg}
-                              onClick={() =>
-                                Taro.previewImage({
-                                  urls: record.receiptImages!,
-                                  current: img,
-                                })
-                              }
-                            />
-                          ))}
+                    {(() => {
+                      const has =
+                        (record.receipts && record.receipts.length > 0) ||
+                        (record.receiptImages && record.receiptImages.length > 0);
+                      if (!has) return null;
+                      const list: ReceiptItem[] = record.receipts && record.receipts.length > 0
+                        ? record.receipts
+                        : (record.receiptImages || []).map((url) => ({ url, type: 'receipt' as ReceiptType }));
+                      const urls = list.map((r) => r.url);
+                      return (
+                        <View className={styles.recordReceiptRow}>
+                          <Text style={{ fontSize: 22, color: '#94A3B8', marginRight: 12 }}>
+                            🧾 票据({list.length}):
+                          </Text>
+                          <View className={styles.recordReceiptList}>
+                            {list.map((r, i) => (
+                              <View key={i} style={{ position: 'relative' }}>
+                                <Image
+                                  src={r.url}
+                                  mode="aspectFill"
+                                  className={styles.recordReceiptImg}
+                                  onClick={() =>
+                                    Taro.previewImage({ urls, current: r.url })
+                                  }
+                                />
+                              </View>
+                            ))}
+                          </View>
                         </View>
-                      </View>
-                    )}
+                      );
+                    })()}
                     {record.notes && (
                       <View className={styles.recordBody}>
                         <Text style={{ fontSize: 22, color: '#94A3B8' }}>
@@ -1065,16 +1204,18 @@ const StorePage: React.FC = () => {
               </Text>
               <Text className={styles.modalTitle}>
                 {step === 0 && (draft.mode === 'split' ? '拆零销售登记' : '登记购买记录')}
-                {step === (0.5 as any) && '1/4 · 选择药品'}
-                {step === 1 && '2/4 · 选择门店'}
-                {step === 2 && '3/4 · 填写信息'}
-                {step === 3 && '4/4 · 确认登记'}
+                {step === (0.5 as any) && '1/5 · 选择药品'}
+                {step === (0.75 as any) && '2/5 · 选择成员'}
+                {step === 1 && '3/5 · 选择门店'}
+                {step === 2 && '4/5 · 填写信息'}
+                {step === 3 && '5/5 · 确认登记'}
               </Text>
               {(step > 0 || step === (0.5 as any)) && step !== 3 && (
                 <Text
                   className={styles.modalBack}
                   onClick={() => {
-                    if (step === 1 || step === (0.5 as any)) setStep(0);
+                    if (step === (0.75 as any) || step === (0.5 as any)) setStep(0);
+                    else if (step === 1) setStep(0.75 as any);
                     else if (step === 2) setStep(1);
                     else if (step === 3) setStep(2);
                   }}
@@ -1157,9 +1298,21 @@ const StorePage: React.FC = () => {
                   </Text>
                 </View>
                 <View className={styles.summaryRow}>
-                  <Text className={styles.summaryLabel}>📦 批号</Text>
+                  <Text className={styles.summaryLabel}>� 购买人</Text>
+                  <Text className={styles.summaryValue}>
+                    {selectedRecord.memberName || '本人'}
+                  </Text>
+                </View>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>� 批号</Text>
                   <Text className={styles.summaryValue}>
                     {selectedRecord.batchNumber || '—'}
+                  </Text>
+                </View>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>📱 追溯包装码</Text>
+                  <Text className={classnames(styles.summaryValue, styles.mono)}>
+                    {selectedRecord.barcode || '无'}
                   </Text>
                 </View>
                 {selectedRecord.isSplitSale ? (
@@ -1197,8 +1350,18 @@ const StorePage: React.FC = () => {
                 )}
               </View>
 
-              {selectedRecord.receiptImages &&
-                selectedRecord.receiptImages.length > 0 && (
+              {(() => {
+                const hasReceipts =
+                  (selectedRecord.receipts && selectedRecord.receipts.length > 0) ||
+                  (selectedRecord.receiptImages && selectedRecord.receiptImages.length > 0);
+                if (!hasReceipts) return null;
+
+                const receipts: ReceiptItem[] = selectedRecord.receipts && selectedRecord.receipts.length > 0
+                  ? selectedRecord.receipts
+                  : (selectedRecord.receiptImages || []).map((url) => ({ url, type: 'receipt' as ReceiptType }));
+                const urls = receipts.map((r) => r.url);
+
+                return (
                   <View style={{ marginBottom: 24 }}>
                     <Text
                       style={{
@@ -1208,27 +1371,35 @@ const StorePage: React.FC = () => {
                         marginBottom: 16,
                       }}
                     >
-                      🧾 票据照片（点击预览）
+                      🧾 票据照片（共 {receipts.length} 张 · 点击预览）
                     </Text>
                     <View className={styles.imgGrid}>
-                      {selectedRecord.receiptImages.map((img, i) => (
-                        <Image
-                          key={i}
-                          src={img}
-                          mode="aspectFill"
-                          className={styles.img}
-                          style={{ borderRadius: 16, aspectRatio: '1 / 1' }}
-                          onClick={() =>
-                            Taro.previewImage({
-                              urls: selectedRecord.receiptImages!,
-                              current: img,
-                            })
-                          }
-                        />
+                      {receipts.map((r, i) => (
+                        <View key={i} style={{ position: 'relative' }}>
+                          <Image
+                            src={r.url}
+                            mode="aspectFill"
+                            className={styles.img}
+                            style={{ borderRadius: 16, aspectRatio: '1 / 1' }}
+                            onClick={() =>
+                              Taro.previewImage({ urls, current: r.url })
+                            }
+                          />
+                          <View
+                            className={classnames(
+                              styles.receiptTypeBadge,
+                              styles[`rcpt_${r.type}`]
+                            )}
+                          >
+                            {RECEIPT_TYPES.find((t) => t.key === r.type)?.icon}
+                            {RECEIPT_TYPES.find((t) => t.key === r.type)?.label}
+                          </View>
+                        </View>
                       ))}
                     </View>
                   </View>
-                )}
+                );
+              })()}
 
               {selectedRecord.notes && (
                 <View className={styles.summaryCard}>
