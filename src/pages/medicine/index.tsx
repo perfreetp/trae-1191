@@ -71,8 +71,7 @@ const MedicinePage: React.FC = () => {
     if (activeMedicineTab && activeMedicineTab !== activeTab) {
       setActiveTab(activeMedicineTab);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activeMedicineTab, activeTab]);
 
   const memberReminders = useMemo(
     () => reminders.filter((r) => r.memberId === currentMemberId),
@@ -232,7 +231,15 @@ const MedicinePage: React.FC = () => {
     };
     addReminder(reminder);
     setActiveMedicineTab('reminders');
-    Taro.showToast({ title: '服药提醒已添加', icon: 'success' });
+    if (reminder.memberId !== currentMemberId) {
+      setCurrentMemberId(reminder.memberId);
+      Taro.showToast({
+        title: `已添加到${reminder.memberName}的提醒`,
+        icon: 'success',
+      });
+    } else {
+      Taro.showToast({ title: '服药提醒已添加', icon: 'success' });
+    }
     closeAdd();
   };
 

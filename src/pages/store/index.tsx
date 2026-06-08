@@ -327,12 +327,6 @@ const StorePage: React.FC = () => {
     Taro.makePhoneCall({ phoneNumber: phone });
   };
 
-  useEffect(() => {
-    if (showModal && step === 0 && draft.mode === 'split') {
-      setStep(0.5 as any);
-    }
-  }, [showModal, step, draft.mode]);
-
   /* ---------- 渲染：多步 modal ---------- */
   const renderStep0 = () => {
     const sources: Array<{
@@ -356,7 +350,10 @@ const StorePage: React.FC = () => {
         name: '从常用药',
         desc: `${favoriteMedicines.length}种收藏`,
         disabled: favoriteMedicines.length === 0,
-        onClick: () => setStep(0.5 as any),
+        onClick: () => {
+          (draft as any)._src = 'favorite';
+          setStep(0.5 as any);
+        },
       },
       {
         key: 'recent',
