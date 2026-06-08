@@ -6,7 +6,24 @@ import { useAppStore } from '@/store/useAppStore';
 import EmptyState from '@/components/EmptyState';
 import StatusTag from '@/components/StatusTag';
 import { getAuthenticityLabel } from '@/utils';
+import type { MedicationLog } from '@/types';
 import styles from './index.module.scss';
+
+const todayISO = () => new Date().toISOString().split('T')[0];
+const addDays = (iso: string, n: number) => {
+  const d = new Date(iso);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+};
+const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+const prettyDate = (iso: string) => {
+  const d = new Date(iso);
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;
+};
+const weekdayCN = (iso: string) => {
+  const days = ['日', '一', '二', '三', '四', '五', '六'];
+  return '周' + days[new Date(iso).getDay()];
+};
 
 type FilterType = 'all' | string;
 
@@ -19,6 +36,7 @@ const ProfilePage: React.FC = () => {
   const reports = useAppStore((s) => s.reports);
   const reminders = useAppStore((s) => s.reminders);
   const favorites = useAppStore((s) => s.favorites);
+  const medicationLogs = useAppStore((s) => s.medicationLogs);
 
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
@@ -75,6 +93,32 @@ const ProfilePage: React.FC = () => {
     });
   };
 
+  const medStats7d = useMemo(() => {
+    const today = todayISO();
+    const days: Array<{
+      date: string;
+      total: number;
+      taken: number;
+      skipped: number;
+    }> = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = addDays(today, -i);
+      const logs = medicationLogs.filter((l) => l.date === d);
+      const total = logs.length;
+      const taken = logs.filter((l) => l.status === 'taken').length;
+      const skipped = logs.filter((l) => l.status === 'skipped').length;
+      days.push({ date: d, total, taken, skipped });
+    }
+    const totalAll = days.reduce((s, d) => s + d.total, 0);
+    const takenAll = days.reduce((s, d) => s + d.taken, 0);
+    return {
+      days,
+      totalAll,
+      takenAll,
+      rate: totalAll === 0 ? 0 : Math.round((takenAll / totalAll) * 100),
+    };
+  }, [medicationLogs]);
+
   const handleRecordClick = (medicineId: string) => {
     Taro.navigateTo({ url: `/pages/detail/index?id=${medicineId}` });
   };
@@ -114,6 +158,45 @@ const ProfilePage: React.FC = () => {
       </View>
 
       <View className={styles.content}>
+        <View className={styles.medStatsCard}>
+          <View className={styles.medStatsHeader}>
+            <View>
+              <Text className={styles.medStatsTitle}>💊 近 7 天服药完成</Text>
+              <Text className={styles.medStatsSub}>
+                坚持打卡，用药更规律
+              </Text>
+            </View>
+            <View className={styles.medStatsRate}>
+              <Text className={styles.rateNum}>{medStats7d.rate}</Text>
+              <Text className={styles.rateUnit}>%</Text>
+            </View>
+          </View>
+          <View className={styles.medStatsDays}>
+            {medStats7d.days.map((d) => {
+              const bar =
+                d.total === 0 ? 0 : Math.round((d.taken / d.total) * 100);
+              return (
+                <View key={d.date} className={styles.medDay}>
+                  <View className={styles.medDayBar}>
+                    <View
+                      className={styles.medDayFill}
+                      style={{ height: `${Math.max(4, bar)}%` }}
+                    />
+                  </View>
+                  <Text className={styles.medDayDate}>{prettyDate(d.date)}</Text>
+                  <Text className={styles.medDayWk}>{weekdayCN(d.date)}</Text>
+                </View>
+              );
+            })}
+          </View>
+          <View className={styles.medStatsFooter}>
+            <Text>
+              ✓ 已服用 <Text style={{ color: '#10B981', fontWeight: 600 }}>{medStats7d.takenAll}</Text> 次 · × 跳过{' '}
+              <Text style={{ color: '#64748B', fontWeight: 600 }}>{medStats7d.totalAll - medStats7d.takenAll}</Text> 次
+            </Text>
+          </View>
+        </View>
+
         <View className={styles.memberCard}>
           <View className={styles.memberHeader}>
             <Text className={styles.memberTitle}>👨‍👩‍👧 家庭成员档案</Text>

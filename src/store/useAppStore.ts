@@ -9,6 +9,8 @@ import type {
   AbnormalReport,
   CirculationNode,
   NearbyStore,
+  MedicationLog,
+  MedicationStatus,
 } from '@/types';
 
 const STORAGE_KEY = 'medicine_trace_app_state_v1';
@@ -21,18 +23,29 @@ interface PersistedState {
   storeRecords: StoreRecord[];
   reports: AbnormalReport[];
   reminders: MedicineReminder[];
+  medicationLogs: MedicationLog[];
   activeMedicineTab?: 'reminders' | 'favorites' | 'recalls';
 }
 
 interface AppState extends PersistedState {
+  draftStoreRecord: Partial<StoreRecord> | null;
   setCurrentMemberId: (id: string) => void;
   setActiveMedicineTab: (tab: 'reminders' | 'favorites' | 'recalls') => void;
   toggleFavorite: (medicineId: string) => void;
   addQueryRecord: (record: QueryRecord) => void;
   addStoreRecord: (record: StoreRecord) => void;
+  setDraftStoreRecord: (draft: Partial<StoreRecord> | null) => void;
+  consumeDraftStoreRecord: () => Partial<StoreRecord> | null;
   addReport: (report: AbnormalReport) => void;
   addReminder: (reminder: MedicineReminder) => void;
   toggleReminder: (id: string) => void;
+  markMedication: (
+    reminderId: string,
+    date: string,
+    timeIndex: number,
+    status: MedicationStatus,
+    info?: Partial<{ medicineName: string; medicineId: string; memberId: string; memberName: string; dosage: string; scheduledTime: string }>
+  ) => void;
   addFamilyMember: (member: FamilyMember) => void;
   getBarcodeQueryInfo: (barcode: string) => { count: number; lastTime: string | null };
   _hydrated: boolean;
@@ -148,6 +161,7 @@ const saveState = (state: PersistedState) => {
       storeRecords: state.storeRecords,
       reports: state.reports,
       reminders: state.reminders,
+      medicationLogs: state.medicationLogs,
       activeMedicineTab: state.activeMedicineTab,
     };
     Taro.setStorageSync(STORAGE_KEY, JSON.stringify(toSave));
@@ -167,15 +181,27 @@ export const useAppStore = create<AppState>((set, get) => {
     storeRecords: loaded.storeRecords?.length ? loaded.storeRecords : defaultStoreRecords,
     reports: loaded.reports?.length ? loaded.reports : defaultReports,
     reminders: loaded.reminders?.length ? loaded.reminders : defaultReminders,
+    medicationLogs: loaded.medicationLogs?.length ? loaded.medicationLogs : [],
     activeMedicineTab: loaded.activeMedicineTab || 'reminders',
   };
 
   return {
     ...initial,
+    draftStoreRecord: null,
     _hydrated: true,
 
     persist: () => {
       saveState(get() as PersistedState);
+    },
+
+    setDraftStoreRecord: (draft) => {
+      set({ draftStoreRecord: draft });
+    },
+
+    consumeDraftStoreRecord: () => {
+      const d = get().draftStoreRecord;
+      set({ draftStoreRecord: null });
+      return d;
     },
 
     setCurrentMemberId: (id) => {
@@ -223,6 +249,42 @@ export const useAppStore = create<AppState>((set, get) => {
           r.id === id ? { ...r, enabled: !r.enabled } : r
         ),
       }));
+      get().persist();
+    },
+
+    markMedication: (reminderId, date, timeIndex, status, info) => {
+      set((state) => {
+        const reminder = state.reminders.find((r) => r.id === reminderId);
+        const existing = state.medicationLogs.find(
+          (l) =>
+            l.reminderId === reminderId &&
+            l.date === date &&
+            l.timeIndex === timeIndex
+        );
+        const now = new Date().toISOString();
+        if (existing) {
+          return {
+            medicationLogs: state.medicationLogs.map((l) =>
+              l.id === existing.id ? { ...l, status, updatedAt: now } : l
+            ),
+          };
+        }
+        const newLog: MedicationLog = {
+          id: 'ml_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          reminderId,
+          medicineId: info?.medicineId || reminder?.medicineId || '',
+          medicineName: info?.medicineName || reminder?.medicineName || '',
+          memberId: info?.memberId || reminder?.memberId || '',
+          memberName: info?.memberName || reminder?.memberName || '',
+          dosage: info?.dosage || reminder?.dosage || '',
+          date,
+          scheduledTime: info?.scheduledTime || '',
+          timeIndex,
+          status,
+          updatedAt: now,
+        };
+        return { medicationLogs: [newLog, ...state.medicationLogs] };
+      });
       get().persist();
     },
 

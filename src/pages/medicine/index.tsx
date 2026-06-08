@@ -15,7 +15,7 @@ import { useAppStore, mockMedicines } from '@/store/useAppStore';
 import MedicineCard from '@/components/MedicineCard';
 import EmptyState from '@/components/EmptyState';
 import { formatDate, generateId } from '@/utils';
-import type { Medicine, MedicineReminder } from '@/types';
+import type { Medicine, MedicineReminder, MedicationLog, MedicationStatus } from '@/types';
 import styles from './index.module.scss';
 
 type TabType = 'reminders' | 'favorites' | 'recalls';
@@ -66,6 +66,8 @@ const MedicinePage: React.FC = () => {
   const favorites = useAppStore((s) => s.favorites);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const queryRecords = useAppStore((s) => s.queryRecords);
+  const medicationLogs = useAppStore((s) => s.medicationLogs);
+  const markMedication = useAppStore((s) => s.markMedication);
 
   useEffect(() => {
     if (activeMedicineTab && activeMedicineTab !== activeTab) {
@@ -96,6 +98,60 @@ const MedicinePage: React.FC = () => {
     () => mockMedicines.filter((m) => m.recallNotice),
     []
   );
+
+  const today = todayISO();
+
+  const todayTasks = useMemo(() => {
+    const tasks: Array<{
+      id: string;
+      reminderId: string;
+      medicineId: string;
+      medicineName: string;
+      dosage: string;
+      scheduledTime: string;
+      timeIndex: number;
+      status: MedicationStatus;
+    }> = [];
+    reminders
+      .filter((r) => r.enabled && r.memberId === currentMemberId)
+      .forEach((r) => {
+        if (r.startDate > today || r.endDate < today) return;
+        r.times.forEach((t, i) => {
+          const log = medicationLogs.find(
+            (l) =>
+              l.reminderId === r.id && l.date === today && l.timeIndex === i
+          );
+          tasks.push({
+            id: `${r.id}_${i}`,
+            reminderId: r.id,
+            medicineId: r.medicineId,
+            medicineName: r.medicineName,
+            dosage: r.dosage,
+            scheduledTime: t,
+            timeIndex: i,
+            status: log?.status || 'pending',
+          });
+        });
+      });
+    return tasks.sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime));
+  }, [reminders, currentMemberId, medicationLogs, today]);
+
+  const handleMark = (taskId: string, status: MedicationStatus) => {
+    const task = todayTasks.find((t) => t.id === taskId);
+    if (!task) return;
+    markMedication(task.reminderId, today, task.timeIndex, status, {
+      medicineId: task.medicineId,
+      medicineName: task.medicineName,
+      memberId: currentMemberId,
+      memberName: familyMembers.find((m) => m.id === currentMemberId)?.name || '',
+      dosage: task.dosage,
+      scheduledTime: task.scheduledTime,
+    });
+    Taro.showToast({
+      title: status === 'taken' ? '已标记已服用' : '已标记跳过',
+      icon: 'success',
+    });
+  };
 
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState<AddStep>(0);
@@ -245,6 +301,71 @@ const MedicinePage: React.FC = () => {
 
   const renderReminders = () => (
     <>
+      <View className={styles.todayPanel}>
+        <View className={styles.todayHeader}>
+          <Text className={styles.todayTitle}>📅 今日服药</Text>
+          <Text className={styles.todaySub}>
+            {todayTasks.filter((t) => t.status === 'taken').length}/
+            {todayTasks.length} 已完成
+          </Text>
+        </View>
+        {todayTasks.length === 0 ? (
+          <View className={styles.todayEmpty}>
+            <Text>暂无今日任务，添加提醒后会显示在这里</Text>
+          </View>
+        ) : (
+          <View className={styles.todayList}>
+            {todayTasks.map((task) => (
+              <View
+                key={task.id}
+                className={classnames(
+                  styles.todayItem,
+                  task.status === 'taken' && styles.todayTaken,
+                  task.status === 'skipped' && styles.todaySkipped
+                )}
+              >
+                <View className={styles.todayTime}>
+                  <Text className={styles.todayTimeText}>{task.scheduledTime}</Text>
+                </View>
+                <View className={styles.todayInfo}>
+                  <Text className={styles.todayMed}>{task.medicineName}</Text>
+                  <Text className={styles.todayDosage}>{task.dosage}</Text>
+                </View>
+                <View className={styles.todayBtns}>
+                  {task.status === 'pending' ? (
+                    <>
+                      <Button
+                        className={styles.skipBtn}
+                        onClick={() => handleMark(task.id, 'skipped')}
+                      >
+                        跳过
+                      </Button>
+                      <Button
+                        className={styles.takeBtn}
+                        onClick={() => handleMark(task.id, 'taken')}
+                      >
+                        ✓ 已服
+                      </Button>
+                    </>
+                  ) : (
+                    <View
+                      className={classnames(
+                        styles.statusBadge,
+                        task.status === 'taken' && styles.statusOk,
+                        task.status === 'skipped' && styles.statusSkip
+                      )}
+                      onClick={() => handleMark(task.id, 'pending')}
+                    >
+                      {task.status === 'taken' ? '✓ 已服用' : '× 已跳过'}
+                    </View>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
       {memberReminders.length === 0 ? (
         <EmptyState
           icon="⏰"

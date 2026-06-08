@@ -13,6 +13,8 @@ const VerifyPage: React.FC = () => {
   const barcode = router.params.barcode ? decodeURIComponent(router.params.barcode) : '';
   const getBarcodeQueryInfo = useAppStore((s) => s.getBarcodeQueryInfo);
 
+  const setDraftStoreRecord = useAppStore((s) => s.setDraftStoreRecord);
+
   const medicine = useMemo(
     () => mockMedicines.find((m) => m.id === medicineId) || mockMedicines[0],
     [medicineId]
@@ -55,6 +57,19 @@ const VerifyPage: React.FC = () => {
       data: text,
       success: () => Taro.showToast({ title: '核验结果已复制', icon: 'success' }),
     });
+  };
+
+  const handleGoStore = () => {
+    setDraftStoreRecord({
+      medicineId: medicine.id,
+      medicineName: medicine.name,
+      batchNumber: medicine.batchNumber,
+      barcode: currentBarcode,
+    });
+    Taro.showToast({ title: '已带入药品信息', icon: 'success' });
+    setTimeout(() => {
+      Taro.switchTab({ url: '/pages/store/index' });
+    }, 500);
   };
 
   const isAuthentic = medicine.authenticity === 'authentic';
@@ -286,12 +301,15 @@ const VerifyPage: React.FC = () => {
             ⚠️ 异常上报
           </Button>
         )}
+        <Button className={`${styles.btn} ${styles.info}`} onClick={handleGoStore}>
+          🏪 登记购买
+        </Button>
         <Button
           className={`${styles.btn} ${styles.primary}`}
           onClick={isAuthentic ? handleViewCirculation : handleViewDetail}
           style={{ flex: isAuthentic ? 1.5 : 1 }}
         >
-          {isAuthentic ? '🔄 查看流通链路' : '📄 查看详情'}
+          {isAuthentic ? '🔄 流通链路' : '📄 详情'}
         </Button>
       </View>
     </ScrollView>

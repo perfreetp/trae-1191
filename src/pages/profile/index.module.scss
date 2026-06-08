@@ -369,3 +369,105 @@
   flex-wrap: wrap;
   gap: $spacing-xs;
 }
+
+.medStatsCard {
+  background: $color-bg-card;
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-card;
+  border: 2rpx solid $color-divider;
+}
+
+.medStatsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-lg;
+}
+
+.medStatsTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.medStatsSub {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.medStatsRate {
+  display: flex;
+  align-items: flex-end;
+  gap: 2rpx;
+  background: linear-gradient(135deg, rgba($color-success, 0.1) 0%, rgba($color-primary, 0.1) 100%);
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-lg;
+}
+
+.rateNum {
+  font-size: 44rpx;
+  font-weight: $font-weight-bold;
+  color: $color-success;
+  line-height: 1;
+}
+
+.rateUnit {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
+  line-height: 1.4;
+}
+
+.medStatsDays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12rpx;
+  margin-bottom: $spacing-md;
+}
+
+.medDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.medDayBar {
+  width: 100%;
+  height: 120rpx;
+  background: $color-bg-hover;
+  border-radius: $radius-xs;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.medDayFill {
+  width: 100%;
+  background: linear-gradient(180deg, $color-success 0%, $color-primary 100%);
+  border-radius: $radius-xs;
+  transition: height 0.3s ease;
+}
+
+.medDayDate {
+  font-size: 22rpx;
+  font-weight: $font-weight-medium;
+  color: $color-text-secondary;
+}
+
+.medDayWk {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.medStatsFooter {
+  padding-top: $spacing-sm;
+  border-top: 1rpx solid $color-divider;
+  text-align: center;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+}

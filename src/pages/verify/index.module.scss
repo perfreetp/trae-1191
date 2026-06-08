@@ -271,4 +271,9 @@
     background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
     color: $color-text-white;
   }
+
+  &.info {
+    background: #F0F9FF;
+    color: #0284C7;
+  }
 }

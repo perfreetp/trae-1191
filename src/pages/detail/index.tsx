@@ -19,6 +19,7 @@ const DetailPage: React.FC = () => {
   const circulationNodes = mockCirculation[medicineId] || [];
   const favorites = useAppStore((s) => s.favorites);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
+  const setDraftStoreRecord = useAppStore((s) => s.setDraftStoreRecord);
 
   const isFavorited = favorites.includes(medicine.id);
   const expiry = getExpiryStatus(medicine.expiryDate);
@@ -51,6 +52,19 @@ const DetailPage: React.FC = () => {
 
   const handleReport = () => {
     Taro.switchTab({ url: '/pages/report/index' });
+  };
+
+  const handleGoStore = () => {
+    setDraftStoreRecord({
+      medicineId: medicine.id,
+      medicineName: medicine.name,
+      batchNumber: medicine.batchNumber,
+      barcode: medicine.barcode,
+    });
+    Taro.showToast({ title: '已带入药品信息', icon: 'success' });
+    setTimeout(() => {
+      Taro.switchTab({ url: '/pages/store/index' });
+    }, 500);
   };
 
   return (
@@ -251,8 +265,15 @@ const DetailPage: React.FC = () => {
         >
           ⚠️ 异常上报
         </Button>
+        <Button
+          className={styles.secondaryBtn}
+          onClick={handleGoStore}
+          style={{ background: '#F0F9FF', color: '#0284C7', flex: 1 }}
+        >
+          🏪 登记购买
+        </Button>
         <Button className={styles.primaryBtn} onClick={handleVerify}>
-          ✅ 查看核验结果
+          ✅ 核验结果
         </Button>
       </View>
     </ScrollView>

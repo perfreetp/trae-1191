@@ -131,3 +131,20 @@ export interface NearbyStore {
   businessHours: string;
   type: 'chain' | 'independent' | 'hospital';
 }
+
+export type MedicationStatus = 'pending' | 'taken' | 'skipped';
+
+export interface MedicationLog {
+  id: string;
+  reminderId: string;
+  medicineId: string;
+  medicineName: string;
+  memberId: string;
+  memberName: string;
+  dosage: string;
+  date: string;
+  scheduledTime: string;
+  timeIndex: number;
+  status: MedicationStatus;
+  updatedAt: string;
+}

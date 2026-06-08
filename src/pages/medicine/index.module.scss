@@ -773,3 +773,152 @@
     color: $color-text-tertiary;
   }
 }
+
+.todayPanel {
+  background: linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%);
+  border-radius: $radius-xl;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  border: 2rpx solid rgba($color-primary, 0.1);
+  box-shadow: 0 8rpx 24rpx rgba($color-primary, 0.08);
+}
+
+.todayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.todayTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.todaySub {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+  background: $color-primary-bg;
+  padding: 4rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+.todayEmpty {
+  padding: $spacing-lg;
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.todayList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.todayItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: $radius-lg;
+  border-left: 8rpx solid $color-primary;
+  transition: all $transition-base;
+
+  &.todayTaken {
+    border-left-color: $color-success;
+    background: rgba($color-success-bg, 0.95);
+  }
+
+  &.todaySkipped {
+    border-left-color: $color-text-tertiary;
+    opacity: 0.7;
+  }
+}
+
+.todayTime {
+  width: 100rpx;
+  flex-shrink: 0;
+}
+
+.todayTimeText {
+  font-size: $font-size-md;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.todayInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.todayMed {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.todayDosage {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.todayBtns {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+}
+
+.skipBtn {
+  @include button-reset;
+  padding: 0 20rpx;
+  height: 56rpx;
+  border-radius: 999rpx;
+  background: $color-bg-hover;
+  color: $color-text-secondary;
+  font-size: 24rpx;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    background: $color-border;
+  }
+}
+
+.takeBtn {
+  @include button-reset;
+  padding: 0 20rpx;
+  height: 56rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(135deg, $color-success 0%, #10B981 100%);
+  color: $color-text-white;
+  font-size: 24rpx;
+  font-weight: $font-weight-semibold;
+  box-shadow: 0 4rpx 12rpx rgba($color-success, 0.3);
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.statusBadge {
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: $font-weight-medium;
+  text-align: center;
+
+  &.statusOk {
+    background: $color-success-bg;
+    color: $color-success;
+  }
+
+  &.statusSkip {
+    background: $color-bg-hover;
+    color: $color-text-tertiary;
+  }
+}

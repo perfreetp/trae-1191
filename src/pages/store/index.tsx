@@ -48,16 +48,48 @@ interface StoreDraft {
 
 const todayISO = () => new Date().toISOString().split('T')[0];
 
+type RecordFilter = {
+  memberId: string;
+  onlySplit: boolean;
+  onlyHasReceipt: boolean;
+};
+
 const StorePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('nearby');
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<RecordFilter>({
+    memberId: 'all',
+    onlySplit: false,
+    onlyHasReceipt: false,
+  });
 
   const storeRecords = useAppStore((s) => s.storeRecords);
   const addStoreRecord = useAppStore((s) => s.addStoreRecord);
   const currentMemberId = useAppStore((s) => s.currentMemberId);
+  const setCurrentMemberId = useAppStore((s) => s.setCurrentMemberId);
   const familyMembers = useAppStore((s) => s.familyMembers);
   const favorites = useAppStore((s) => s.favorites);
   const queryRecords = useAppStore((s) => s.queryRecords);
+  const consumeDraftStoreRecord = useAppStore((s) => s.consumeDraftStoreRecord);
   const currentMember = familyMembers.find((m) => m.id === currentMemberId);
+
+  useEffect(() => {
+    const d = consumeDraftStoreRecord();
+    if (d && d.medicineId) {
+      resetDraft(d.isSplitSale ? 'split' : 'normal');
+      setDraft((old) => ({
+        ...old,
+        medicineId: d.medicineId || '',
+        medicineName: d.medicineName || '',
+        barcode: d.batchNumber ? '' : (d as any).barcode || '',
+        batchNumber: d.batchNumber || '',
+        isSplitSale: !!d.isSplitSale,
+      }));
+      setStep((0.5 as any));
+      setShowModal(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sortedStores = useMemo(
     () => [...mockNearbyStores].sort((a, b) => a.distance - b.distance),
@@ -77,6 +109,25 @@ const StorePage: React.FC = () => {
     });
     return Array.from(map.values());
   }, [queryRecords]);
+
+  const filteredRecords = useMemo(() => {
+    return storeRecords.filter((r) => {
+      if (filter.memberId !== 'all') {
+        if (r.medicineId && r.medicineId.startsWith('custom_')) {
+          // 无明确成员关联的记录，对「全部」显示
+          if (filter.memberId !== 'all') return false;
+        }
+      }
+      if (filter.onlySplit && !r.isSplitSale) return false;
+      if (filter.onlyHasReceipt && !(r.receiptImages && r.receiptImages.length > 0)) return false;
+      return true;
+    });
+  }, [storeRecords, filter]);
+
+  const selectedRecord = useMemo(
+    () => storeRecords.find((r) => r.id === selectedRecordId) || null,
+    [storeRecords, selectedRecordId]
+  );
 
   const [showModal, setShowModal] = useState(false);
   const [step, setStep] = useState<AddStep>(0);
@@ -301,6 +352,7 @@ const StorePage: React.FC = () => {
             ),
           }));
           useAppStore.getState().persist();
+          setActiveTab('records');
           Taro.showToast({ title: '票据已关联', icon: 'success' });
         } catch (e) {
           console.warn(e);
@@ -869,19 +921,64 @@ const StorePage: React.FC = () => {
           <>
             <View className={styles.sectionHeader}>
               <Text className={styles.sectionTitle}>📋 我的购药记录</Text>
-              {currentMember && (
-                <Text className={styles.sectionMore}>当前: {currentMember.name}</Text>
-              )}
+              <Text className={styles.sectionMore}>共 {filteredRecords.length} 条</Text>
             </View>
-            {storeRecords.length === 0 ? (
+
+            <View className={styles.filterBar}>
+              <ScrollView scrollX className={styles.filterScroll} enhanced showScrollbar={false}>
+                {[
+                  { key: 'all', label: '全部成员' },
+                  ...familyMembers.map((m) => ({ key: m.id, label: m.name })),
+                ].map((m) => (
+                  <Button
+                    key={m.key}
+                    className={classnames(
+                      styles.filterChip,
+                      filter.memberId === m.key && styles.filterActive
+                    )}
+                    onClick={() => setFilter((f) => ({ ...f, memberId: m.key }))}
+                  >
+                    {m.label}
+                  </Button>
+                ))}
+              </ScrollView>
+              <View className={styles.toggleRow}>
+                <View
+                  className={classnames(
+                    styles.toggleChip,
+                    filter.onlySplit && styles.toggleActive
+                  )}
+                  onClick={() => setFilter((f) => ({ ...f, onlySplit: !f.onlySplit }))}
+                >
+                  ✂️ 仅拆零
+                </View>
+                <View
+                  className={classnames(
+                    styles.toggleChip,
+                    filter.onlyHasReceipt && styles.toggleActive
+                  )}
+                  onClick={() =>
+                    setFilter((f) => ({ ...f, onlyHasReceipt: !f.onlyHasReceipt }))
+                  }
+                >
+                  🧾 仅带票据
+                </View>
+              </View>
+            </View>
+
+            {filteredRecords.length === 0 ? (
               <EmptyState
                 icon="🧾"
-                title="暂无购药记录"
-                desc="点击上方「登记购买」录入您的购药信息"
+                title="暂无符合条件的购药记录"
+                desc="调整筛选条件或点击上方「登记购买」录入"
               />
             ) : (
-              storeRecords.map((record) => (
-                <View key={record.id} className={styles.recordCard}>
+              filteredRecords.map((record) => (
+                <View
+                  key={record.id}
+                  className={styles.recordCard}
+                  onClick={() => setSelectedRecordId(record.id)}
+                >
                   <View className={styles.recordHeader}>
                     <Text className={styles.recordStore}>{record.storeName}</Text>
                     <Text className={styles.recordDate}>{record.purchaseDate}</Text>
@@ -995,6 +1092,163 @@ const StorePage: React.FC = () => {
                 </Button>
               </View>
             )}
+          </View>
+        </View>
+      )}
+
+      {selectedRecord && (
+        <View
+          className={styles.modalMask}
+          onClick={() => setSelectedRecordId(null)}
+        >
+          <View
+            className={styles.detailModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <View className={styles.modalHeader}>
+              <Text
+                className={styles.modalClose}
+                onClick={() => setSelectedRecordId(null)}
+              >
+                ✕
+              </Text>
+              <Text className={styles.modalTitle}>购药详情</Text>
+              <View style={{ width: 60 }} />
+            </View>
+            <ScrollView scrollY className={styles.stepBody}>
+              <View className={styles.summaryCard} style={{ marginBottom: 24 }}>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>🏪 门店</Text>
+                  <Text className={styles.summaryValue}>
+                    {selectedRecord.storeName}
+                  </Text>
+                </View>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>📍 地址</Text>
+                  <Text className={styles.summaryValue}>
+                    {selectedRecord.storeAddress}
+                  </Text>
+                </View>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>📞 电话</Text>
+                  <Text className={styles.summaryValue}>
+                    {selectedRecord.storePhone || '—'}
+                  </Text>
+                </View>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>📄 许可证</Text>
+                  <Text className={styles.summaryValue}>
+                    {selectedRecord.storeLicense || '—'}
+                  </Text>
+                </View>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>📅 购买日期</Text>
+                  <Text className={styles.summaryValue}>
+                    {formatDate(selectedRecord.purchaseDate)}
+                  </Text>
+                </View>
+              </View>
+
+              <View className={styles.summaryCard} style={{ marginBottom: 24 }}>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>💊 药品</Text>
+                  <Text className={classnames(styles.summaryValue, styles.primary)}>
+                    {selectedRecord.medicineName}
+                  </Text>
+                </View>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>📦 批号</Text>
+                  <Text className={styles.summaryValue}>
+                    {selectedRecord.batchNumber || '—'}
+                  </Text>
+                </View>
+                {selectedRecord.isSplitSale ? (
+                  <View className={styles.summaryRow}>
+                    <Text className={styles.summaryLabel}>✂️ 拆零数量</Text>
+                    <Text className={classnames(styles.summaryValue, styles.danger)}>
+                      {selectedRecord.splitQuantity || selectedRecord.quantity} 份
+                    </Text>
+                  </View>
+                ) : (
+                  <View className={styles.summaryRow}>
+                    <Text className={styles.summaryLabel}>🔢 数量</Text>
+                    <Text className={styles.summaryValue}>
+                      {selectedRecord.quantity} 盒/瓶
+                    </Text>
+                  </View>
+                )}
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>💰 单价</Text>
+                  <Text className={styles.summaryValue}>
+                    ¥{selectedRecord.unitPrice.toFixed(2)}
+                  </Text>
+                </View>
+                <View className={styles.summaryRow}>
+                  <Text className={styles.summaryLabel}>🧾 合计</Text>
+                  <Text className={classnames(styles.summaryValue, styles.danger)}>
+                    ¥{selectedRecord.totalPrice.toFixed(2)}
+                  </Text>
+                </View>
+                {selectedRecord.isSplitSale && (
+                  <View className={styles.summaryRow}>
+                    <Text className={styles.summaryLabel}>🏷️ 类型</Text>
+                    <View className={styles.splitTag}>✂️ 拆零销售</View>
+                  </View>
+                )}
+              </View>
+
+              {selectedRecord.receiptImages &&
+                selectedRecord.receiptImages.length > 0 && (
+                  <View style={{ marginBottom: 24 }}>
+                    <Text
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 600,
+                        color: '#0F172A',
+                        marginBottom: 16,
+                      }}
+                    >
+                      🧾 票据照片（点击预览）
+                    </Text>
+                    <View className={styles.imgGrid}>
+                      {selectedRecord.receiptImages.map((img, i) => (
+                        <Image
+                          key={i}
+                          src={img}
+                          mode="aspectFill"
+                          className={styles.img}
+                          style={{ borderRadius: 16, aspectRatio: '1 / 1' }}
+                          onClick={() =>
+                            Taro.previewImage({
+                              urls: selectedRecord.receiptImages!,
+                              current: img,
+                            })
+                          }
+                        />
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+              {selectedRecord.notes && (
+                <View className={styles.summaryCard}>
+                  <View className={styles.summaryRow}>
+                    <Text className={styles.summaryLabel}>📝 备注</Text>
+                    <Text className={styles.summaryValue}>
+                      {selectedRecord.notes}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+            <View className={styles.modalFooter}>
+              <Button
+                className={styles.primaryBtn}
+                onClick={() => setSelectedRecordId(null)}
+              >
+                关闭
+              </Button>
+            </View>
           </View>
         </View>
       )}
