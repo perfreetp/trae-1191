@@ -1,0 +1,150 @@
+@use '@/styles/variables.scss' as *;
+
+.node {
+  display: flex;
+  gap: $spacing-lg;
+  position: relative;
+  padding-bottom: $spacing-xl;
+
+  &:last-child {
+    padding-bottom: 0;
+
+    .line {
+      display: none;
+    }
+  }
+}
+
+.indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 48rpx;
+}
+
+.dot {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: $radius-round;
+  background: $color-border;
+  border: 4rpx solid $color-bg-card;
+  box-shadow: 0 0 0 2rpx $color-border;
+  z-index: 1;
+  flex-shrink: 0;
+
+  &.manufacturer {
+    background: $color-primary;
+    box-shadow: 0 0 0 2rpx $color-primary;
+  }
+
+  &.wholesaler {
+    background: #8B5CF6;
+    box-shadow: 0 0 0 2rpx #8B5CF6;
+  }
+
+  &.retailer {
+    background: $color-success;
+    box-shadow: 0 0 0 2rpx $color-success;
+  }
+
+  &.consumer {
+    background: $color-warning;
+    box-shadow: 0 0 0 2rpx $color-warning;
+  }
+}
+
+.line {
+  width: 4rpx;
+  flex: 1;
+  background: linear-gradient(to bottom, $color-border, transparent);
+  margin-top: 4rpx;
+}
+
+.content {
+  flex: 1;
+  background: $color-bg-card;
+  border-radius: $radius-md;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+}
+
+.typeTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+
+  &.manufacturer {
+    background: $color-primary-bg;
+    color: $color-primary;
+  }
+
+  &.wholesaler {
+    background: #EDE9FE;
+    color: #7C3AED;
+  }
+
+  &.retailer {
+    background: $color-success-bg;
+    color: $color-success;
+  }
+
+  &.consumer {
+    background: $color-warning-bg;
+    color: $color-warning;
+  }
+}
+
+.time {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.name {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-xs;
+  @include text-ellipsis;
+}
+
+.operation {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.detailItem {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+
+  .label {
+    flex-shrink: 0;
+    color: $color-text-tertiary;
+  }
+
+  .value {
+    color: $color-text-secondary;
+    flex: 1;
+  }
+}

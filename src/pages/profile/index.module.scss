@@ -1,0 +1,371 @@
+@use '@/styles/variables.scss' as *;
+
+.container {
+  min-height: 100vh;
+  padding-bottom: 40rpx;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-dark 100%);
+  padding: 48rpx $page-padding 96rpx;
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-lg;
+}
+
+.avatar {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: $radius-round;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.4);
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: $spacing-xs;
+}
+
+.userDesc {
+  font-size: $font-size-sm;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.verifyBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  background: rgba(255, 255, 255, 0.25);
+  color: $color-text-white;
+  font-size: 20rpx;
+}
+
+.memberBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-xs;
+  background: rgba(255, 255, 255, 0.25);
+  color: $color-text-white;
+  font-size: 20rpx;
+}
+
+.statsRow {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.statNum {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+}
+
+.statLabel {
+  font-size: $font-size-xs;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.content {
+  padding: 0 $page-padding;
+  margin-top: -64rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.memberCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.memberHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+}
+
+.memberTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.addBtn {
+  @include button-reset;
+  height: 48rpx;
+  padding: 0 $spacing-md;
+  border-radius: $radius-button;
+  background: $color-primary-bg;
+  color: $color-primary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+.memberList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.memberItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-md;
+  background: $color-bg-hover;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-primary-bg;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.memberAvatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-round;
+  background: $color-bg-card;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.memberDetail {
+  flex: 1;
+  min-width: 0;
+}
+
+.memberName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.memberMeta {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.tagRow {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  margin-top: 4rpx;
+}
+
+.miniTag {
+  display: inline-flex;
+  padding: 2rpx 10rpx;
+  border-radius: $radius-xs;
+  font-size: 18rpx;
+
+  &.allergy {
+    background: $color-error-bg;
+    color: $color-error;
+  }
+
+  &.chronic {
+    background: $color-warning-bg;
+    color: $color-warning;
+  }
+}
+
+.sectionCard {
+  background: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.cardTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.menuList {
+  display: flex;
+  flex-direction: column;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+  transition: all $transition-base;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.menuIcon {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+
+  &.blue { background: $color-primary-bg; }
+  &.green { background: $color-success-bg; }
+  &.orange { background: $color-warning-bg; }
+  &.purple { background: #EDE9FE; }
+  &.red { background: $color-error-bg; }
+}
+
+.menuContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.menuLabel {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+}
+
+.menuArrow {
+  color: $color-text-tertiary;
+  font-size: $font-size-md;
+}
+
+.filterBar {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  overflow-x: auto;
+  padding-bottom: $spacing-xs;
+}
+
+.filterChip {
+  @include button-reset;
+  height: 56rpx;
+  padding: 0 $spacing-lg;
+  border-radius: $radius-button;
+  background: $color-bg-hover;
+  color: $color-text-secondary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  flex-shrink: 0;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-primary;
+    color: $color-text-white;
+  }
+
+  &:active {
+    opacity: 0.9;
+  }
+}
+
+.recordItem {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.recordIcon {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-sm;
+  background: $color-primary-bg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  flex-shrink: 0;
+}
+
+.recordContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.recordName {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+  @include text-ellipsis;
+}
+
+.recordInfo {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
