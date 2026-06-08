@@ -319,3 +319,509 @@
   color: $color-primary;
   font-weight: $font-weight-medium;
 }
+
+.modalMask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $page-padding;
+}
+
+.modal {
+  width: 100%;
+  max-height: 88vh;
+  background: $color-bg-card;
+  border-radius: $radius-xl;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24rpx 80rpx rgba(2, 6, 23, 0.3);
+}
+
+.modalHeader {
+  position: relative;
+  padding: $spacing-md $spacing-lg;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1rpx solid $color-divider;
+  background: linear-gradient(135deg, $color-success-bg 0%, $color-bg-card 100%);
+}
+
+.modalClose {
+  width: 60rpx;
+  font-size: $font-size-lg;
+  color: $color-text-tertiary;
+  text-align: left;
+}
+
+.modalTitle {
+  flex: 1;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  text-align: center;
+}
+
+.modalBack {
+  width: 60rpx;
+  font-size: $font-size-sm;
+  color: $color-primary;
+  text-align: right;
+}
+
+.modalFooter {
+  padding: $spacing-md $spacing-lg $spacing-lg;
+  border-top: 1rpx solid $color-divider;
+  background: $color-bg-page;
+}
+
+.stepBody {
+  padding: $spacing-lg;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.stepTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-sm;
+}
+
+.stepTip {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-bottom: $spacing-lg;
+  padding: $spacing-xs $spacing-sm;
+  background: $color-success-bg;
+  border-radius: $radius-xs;
+  display: inline-block;
+}
+
+.sourceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.sourceCardMini {
+  padding: $spacing-lg $spacing-md;
+  border-radius: $radius-lg;
+  background: $color-bg-page;
+  border: 2rpx solid $color-divider;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  transition: all $transition-base;
+
+  &:active {
+    border-color: $color-primary;
+    background: $color-primary-bg;
+    transform: scale(0.98);
+  }
+
+  &.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+}
+
+.sourceIcon {
+  font-size: 44rpx;
+}
+
+.sourceName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.sourceDesc {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.field {
+  margin-bottom: $spacing-lg;
+}
+
+.fieldLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-bottom: $spacing-sm;
+  font-weight: $font-weight-medium;
+  display: flex;
+  align-items: center;
+}
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+}
+
+.fieldInput {
+  width: 100%;
+  height: $button-height-sm;
+  padding: 0 $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  box-sizing: border-box;
+}
+
+.fieldInputRow {
+  height: $button-height-sm;
+  padding: 0 $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  display: flex;
+  align-items: center;
+}
+
+.primaryBtn {
+  @include button-reset;
+  width: 100%;
+  height: $button-height-md;
+  border-radius: $radius-md;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: $color-text-white;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  box-shadow: 0 8rpx 24rpx rgba($color-primary, 0.35);
+
+  &:active {
+    opacity: 0.92;
+    transform: translateY(1rpx);
+  }
+}
+
+.medPickerList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.medPickerItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-lg;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &:active,
+  &.medPickerActive {
+    border-color: $color-primary;
+    background: $color-primary-bg;
+  }
+}
+
+.medPickerImg {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: $radius-md;
+  background: $color-bg-hover;
+  flex-shrink: 0;
+}
+
+.medPickerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.medPickerName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 4rpx;
+}
+
+.medPickerSpec {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-bottom: 4rpx;
+}
+
+.medPickerDosage {
+  font-size: $font-size-xs;
+  color: $color-primary;
+}
+
+.medPickerRadio {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 2rpx solid $color-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-text-white;
+  font-size: $font-size-xs;
+  background: $color-bg-card;
+  flex-shrink: 0;
+
+  .medPickerActive & {
+    background: $color-primary;
+    border-color: $color-primary;
+  }
+}
+
+.storePickerList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.storePickerItem {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-lg;
+  border: 2rpx solid transparent;
+  transition: all $transition-base;
+
+  &:active {
+    border-color: $color-primary;
+    background: $color-primary-bg;
+  }
+}
+
+.storeIconSmall {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-md;
+  background: $color-success-bg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  flex-shrink: 0;
+}
+
+.qtyRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $color-bg-page;
+  border-radius: $radius-md;
+}
+
+.qtyBtn {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: $color-primary-bg;
+  color: $color-primary;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-base;
+
+  &:active {
+    background: $color-primary;
+    color: $color-text-white;
+    transform: scale(0.92);
+  }
+}
+
+.qtyNum {
+  min-width: 72rpx;
+  text-align: center;
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+}
+
+.qtyUnit {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  margin-left: $spacing-xs;
+}
+
+.totalNum {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-error;
+}
+
+.imgGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-md;
+}
+
+.imgBox {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: $radius-md;
+  overflow: hidden;
+  background: $color-bg-hover;
+}
+
+.img {
+  width: 100%;
+  height: 100%;
+}
+
+.imgDel {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.92);
+  color: $color-text-white;
+  font-size: 20rpx;
+  font-weight: $font-weight-semibold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.2);
+}
+
+.imgAdd {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: $radius-md;
+  border: 2rpx dashed $color-border;
+  background: $color-bg-page;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  transition: all $transition-base;
+
+  &:active {
+    border-color: $color-primary;
+    background: $color-primary-bg;
+  }
+}
+
+.imgAddIcon {
+  font-size: 56rpx;
+  color: $color-primary;
+  line-height: 1;
+}
+
+.imgAddText {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+}
+
+.summaryCard {
+  background: $color-bg-page;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  border: 2rpx solid $color-divider;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: $spacing-sm 0;
+  border-bottom: 1rpx solid $color-divider;
+  gap: $spacing-md;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: 0;
+  }
+}
+
+.summaryLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  flex-shrink: 0;
+}
+
+.summaryValue {
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  text-align: right;
+  flex: 1;
+
+  &.primary {
+    color: $color-primary;
+    font-weight: $font-weight-semibold;
+  }
+
+  &.danger {
+    color: $color-error;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.receiptMiniList {
+  display: flex;
+  align-items: center;
+}
+
+.receiptMini {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 12rpx;
+  margin-right: 8rpx;
+  border: 1rpx solid $color-border;
+}
+
+.recordReceiptRow {
+  display: flex;
+  align-items: center;
+  margin-top: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 1rpx solid $color-divider;
+}
+
+.recordReceiptList {
+  display: flex;
+  gap: 12rpx;
+  flex: 1;
+}
+
+.recordReceiptImg {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: $radius-sm;
+  background: $color-bg-hover;
+  border: 1rpx solid $color-border;
+}
+
+.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.primary {
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}

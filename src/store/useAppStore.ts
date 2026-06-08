@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import Taro from '@tarojs/taro';
 import type {
   Medicine,
   QueryRecord,
@@ -10,7 +11,9 @@ import type {
   NearbyStore,
 } from '@/types';
 
-interface AppState {
+const STORAGE_KEY = 'medicine_trace_app_state_v1';
+
+interface PersistedState {
   currentMemberId: string;
   familyMembers: FamilyMember[];
   favorites: string[];
@@ -18,123 +21,224 @@ interface AppState {
   storeRecords: StoreRecord[];
   reports: AbnormalReport[];
   reminders: MedicineReminder[];
+  activeMedicineTab?: 'reminders' | 'favorites' | 'recalls';
+}
+
+interface AppState extends PersistedState {
   setCurrentMemberId: (id: string) => void;
+  setActiveMedicineTab: (tab: 'reminders' | 'favorites' | 'recalls') => void;
   toggleFavorite: (medicineId: string) => void;
   addQueryRecord: (record: QueryRecord) => void;
   addStoreRecord: (record: StoreRecord) => void;
   addReport: (report: AbnormalReport) => void;
   addReminder: (reminder: MedicineReminder) => void;
   toggleReminder: (id: string) => void;
+  addFamilyMember: (member: FamilyMember) => void;
+  getBarcodeQueryInfo: (barcode: string) => { count: number; lastTime: string | null };
+  _hydrated: boolean;
+  persist: () => void;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
-  currentMemberId: '1',
-  familyMembers: [
-    { id: '1', name: '本人', relation: '自己', age: 30, gender: 'male' },
-    { id: '2', name: '妈妈', relation: '母亲', age: 58, gender: 'female', chronicDiseases: ['高血压'] },
-    { id: '3', name: '爸爸', relation: '父亲', age: 60, gender: 'male', allergies: ['青霉素'] },
-  ],
-  favorites: [],
-  queryRecords: [
-    {
-      id: 'qr1',
-      medicineId: 'med1',
-      medicineName: '布洛芬缓释胶囊',
-      barcode: '8123456789012',
-      batchNumber: '20240501A',
-      queryTime: '2026-06-08 14:30',
-      queryType: 'scan',
-      authenticity: 'authentic',
-      memberId: '1',
-      memberName: '本人',
-    },
-    {
-      id: 'qr2',
-      medicineId: 'med2',
-      medicineName: '阿莫西林胶囊',
-      barcode: '8123456789023',
-      batchNumber: '20240315B',
-      queryTime: '2026-06-07 09:15',
-      queryType: 'scan',
-      authenticity: 'authentic',
-      memberId: '2',
-      memberName: '妈妈',
-    },
-  ],
-  storeRecords: [
-    {
-      id: 'sr1',
-      storeName: '老百姓大药房(朝阳店)',
-      storeAddress: '北京市朝阳区建国路88号',
-      storeLicense: '京DA20200001',
-      storePhone: '010-12345678',
-      purchaseDate: '2026-06-08',
-      medicineId: 'med1',
-      medicineName: '布洛芬缓释胶囊',
-      batchNumber: '20240501A',
-      quantity: 2,
-      unitPrice: 28.5,
-      totalPrice: 57,
-      isSplitSale: false,
-    },
-  ],
-  reports: [
-    {
-      id: 'rpt1',
-      type: 'damage',
-      status: 'processing',
-      medicineName: '感冒灵颗粒',
-      batchNumber: '20240210C',
-      storeName: '益丰大药房',
-      description: '外包装盒有明显压痕和破损，内部药板铝箔有少量开裂',
-      images: [],
-      reporterName: '张先生',
-      reporterPhone: '138****8888',
-      submitTime: '2026-06-06 10:20',
-      updateTime: '2026-06-06 15:30',
-      replyContent: '已收到您的反馈，正在联系门店核实情况',
-    },
-  ],
-  reminders: [
-    {
-      id: 'rmd1',
-      medicineId: 'med2',
-      medicineName: '阿莫西林胶囊',
-      memberId: '2',
-      memberName: '妈妈',
-      dosage: '0.25g(1粒)',
-      frequency: '每日3次',
-      times: ['08:00', '14:00', '20:00'],
-      startDate: '2026-06-07',
-      endDate: '2026-06-13',
-      enabled: true,
-      notes: '饭后服用',
-    },
-  ],
-  setCurrentMemberId: (id) => set({ currentMemberId: id }),
-  toggleFavorite: (medicineId) => {
-    const { favorites } = get();
-    set({
-      favorites: favorites.includes(medicineId)
-        ? favorites.filter((id) => id !== medicineId)
-        : [...favorites, medicineId],
-    });
+const defaultFamilyMembers: FamilyMember[] = [
+  { id: '1', name: '本人', relation: '自己', age: 30, gender: 'male' },
+  { id: '2', name: '妈妈', relation: '母亲', age: 58, gender: 'female', chronicDiseases: ['高血压'] },
+  { id: '3', name: '爸爸', relation: '父亲', age: 60, gender: 'male', allergies: ['青霉素'] },
+];
+
+const defaultQueryRecords: QueryRecord[] = [
+  {
+    id: 'qr1',
+    medicineId: 'med1',
+    medicineName: '布洛芬缓释胶囊',
+    barcode: '8123456789012',
+    batchNumber: '20240501A',
+    queryTime: '2026-06-08 14:30',
+    queryType: 'scan',
+    authenticity: 'authentic',
+    memberId: '1',
+    memberName: '本人',
   },
-  addQueryRecord: (record) =>
-    set((state) => ({ queryRecords: [record, ...state.queryRecords] })),
-  addStoreRecord: (record) =>
-    set((state) => ({ storeRecords: [record, ...state.storeRecords] })),
-  addReport: (report) =>
-    set((state) => ({ reports: [report, ...state.reports] })),
-  addReminder: (reminder) =>
-    set((state) => ({ reminders: [reminder, ...state.reminders] })),
-  toggleReminder: (id) =>
-    set((state) => ({
-      reminders: state.reminders.map((r) =>
-        r.id === id ? { ...r, enabled: !r.enabled } : r
-      ),
-    })),
-}));
+  {
+    id: 'qr2',
+    medicineId: 'med2',
+    medicineName: '阿莫西林胶囊',
+    barcode: '8123456789023',
+    batchNumber: '20240315B',
+    queryTime: '2026-06-07 09:15',
+    queryType: 'scan',
+    authenticity: 'authentic',
+    memberId: '2',
+    memberName: '妈妈',
+  },
+];
+
+const defaultStoreRecords: StoreRecord[] = [
+  {
+    id: 'sr1',
+    storeName: '老百姓大药房(朝阳店)',
+    storeAddress: '北京市朝阳区建国路88号',
+    storeLicense: '京DA20200001',
+    storePhone: '010-12345678',
+    purchaseDate: '2026-06-08',
+    medicineId: 'med1',
+    medicineName: '布洛芬缓释胶囊',
+    batchNumber: '20240501A',
+    quantity: 2,
+    unitPrice: 28.5,
+    totalPrice: 57,
+    isSplitSale: false,
+  },
+];
+
+const defaultReports: AbnormalReport[] = [
+  {
+    id: 'rpt1',
+    type: 'damage',
+    status: 'processing',
+    medicineName: '感冒灵颗粒',
+    batchNumber: '20240210C',
+    storeName: '益丰大药房',
+    description: '外包装盒有明显压痕和破损，内部药板铝箔有少量开裂',
+    images: [],
+    reporterName: '张先生',
+    reporterPhone: '138****8888',
+    submitTime: '2026-06-06 10:20',
+    updateTime: '2026-06-06 15:30',
+    replyContent: '已收到您的反馈，正在联系门店核实情况',
+  },
+];
+
+const defaultReminders: MedicineReminder[] = [
+  {
+    id: 'rmd1',
+    medicineId: 'med2',
+    medicineName: '阿莫西林胶囊',
+    memberId: '2',
+    memberName: '妈妈',
+    dosage: '0.25g(1粒)',
+    frequency: '每日3次',
+    times: ['08:00', '14:00', '20:00'],
+    startDate: '2026-06-07',
+    endDate: '2026-06-13',
+    enabled: true,
+    notes: '饭后服用',
+  },
+];
+
+const loadState = (): Partial<PersistedState> => {
+  try {
+    const raw = Taro.getStorageSync(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed || {};
+    }
+  } catch (e) {
+    console.warn('[Store] load state failed:', e);
+  }
+  return {};
+};
+
+const saveState = (state: PersistedState) => {
+  try {
+    const toSave: PersistedState = {
+      currentMemberId: state.currentMemberId,
+      familyMembers: state.familyMembers,
+      favorites: state.favorites,
+      queryRecords: state.queryRecords,
+      storeRecords: state.storeRecords,
+      reports: state.reports,
+      reminders: state.reminders,
+      activeMedicineTab: state.activeMedicineTab,
+    };
+    Taro.setStorageSync(STORAGE_KEY, JSON.stringify(toSave));
+  } catch (e) {
+    console.warn('[Store] save state failed:', e);
+  }
+};
+
+export const useAppStore = create<AppState>((set, get) => {
+  const loaded = loadState();
+
+  const initial: PersistedState = {
+    currentMemberId: loaded.currentMemberId || '1',
+    familyMembers: loaded.familyMembers?.length ? loaded.familyMembers : defaultFamilyMembers,
+    favorites: loaded.favorites || [],
+    queryRecords: loaded.queryRecords?.length ? loaded.queryRecords : defaultQueryRecords,
+    storeRecords: loaded.storeRecords?.length ? loaded.storeRecords : defaultStoreRecords,
+    reports: loaded.reports?.length ? loaded.reports : defaultReports,
+    reminders: loaded.reminders?.length ? loaded.reminders : defaultReminders,
+    activeMedicineTab: loaded.activeMedicineTab || 'reminders',
+  };
+
+  return {
+    ...initial,
+    _hydrated: true,
+
+    persist: () => {
+      saveState(get() as PersistedState);
+    },
+
+    setCurrentMemberId: (id) => {
+      set({ currentMemberId: id });
+      get().persist();
+    },
+
+    setActiveMedicineTab: (tab) => {
+      set({ activeMedicineTab: tab });
+      get().persist();
+    },
+
+    toggleFavorite: (medicineId) => {
+      const { favorites } = get();
+      const next = favorites.includes(medicineId)
+        ? favorites.filter((id) => id !== medicineId)
+        : [...favorites, medicineId];
+      set({ favorites: next });
+      get().persist();
+    },
+
+    addQueryRecord: (record) => {
+      set((state) => ({ queryRecords: [record, ...state.queryRecords] }));
+      get().persist();
+    },
+
+    addStoreRecord: (record) => {
+      set((state) => ({ storeRecords: [record, ...state.storeRecords] }));
+      get().persist();
+    },
+
+    addReport: (report) => {
+      set((state) => ({ reports: [report, ...state.reports] }));
+      get().persist();
+    },
+
+    addReminder: (reminder) => {
+      set((state) => ({ reminders: [reminder, ...state.reminders] }));
+      get().persist();
+    },
+
+    toggleReminder: (id) => {
+      set((state) => ({
+        reminders: state.reminders.map((r) =>
+          r.id === id ? { ...r, enabled: !r.enabled } : r
+        ),
+      }));
+      get().persist();
+    },
+
+    addFamilyMember: (member) => {
+      set((state) => ({ familyMembers: [...state.familyMembers, member] }));
+      get().persist();
+    },
+
+    getBarcodeQueryInfo: (barcode) => {
+      const records = get().queryRecords.filter((r) => r.barcode === barcode);
+      const count = records.length;
+      const lastTime = count > 1 ? records[1].queryTime : null;
+      return { count, lastTime };
+    },
+  };
+});
 
 export const mockMedicines: Medicine[] = [
   {

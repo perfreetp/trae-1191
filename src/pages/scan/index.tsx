@@ -12,6 +12,7 @@ const ScanPage: React.FC = () => {
   const addQueryRecord = useAppStore((s) => s.addQueryRecord);
   const currentMemberId = useAppStore((s) => s.currentMemberId);
   const familyMembers = useAppStore((s) => s.familyMembers);
+  const setActiveMedicineTab = useAppStore((s) => s.setActiveMedicineTab);
   const currentMember = familyMembers.find((m) => m.id === currentMemberId);
 
   const handleScan = async () => {
@@ -54,7 +55,7 @@ const ScanPage: React.FC = () => {
     });
 
     Taro.navigateTo({
-      url: `/pages/verify/index?id=${medicine.id}`,
+      url: `/pages/verify/index?id=${medicine.id}&barcode=${encodeURIComponent(code)}`,
     });
   };
 
@@ -77,18 +78,22 @@ const ScanPage: React.FC = () => {
   const handleQuickAction = (action: string) => {
     switch (action) {
       case 'favorites':
+        setActiveMedicineTab('favorites');
         Taro.switchTab({ url: '/pages/medicine/index' });
         break;
       case 'nearby':
         Taro.switchTab({ url: '/pages/store/index' });
         break;
-      case 'recall':
-        Taro.showToast({ title: '暂无召回通知', icon: 'none' });
+      case 'recall': {
+        setActiveMedicineTab('recalls');
+        Taro.switchTab({ url: '/pages/medicine/index' });
         break;
+      }
       case 'help':
         Taro.showModal({
           title: '使用帮助',
-          content: '1. 点击"扫码核验"扫描药品包装盒上的条码\n2. 或手动输入13位药品条码\n3. 核验成功后可查看药品流通全链路\n4. 如发现异常请及时上报',
+          content:
+            '1. 点击"扫码核验"扫描药品包装盒上的条码\n2. 或手动输入13位药品条码\n3. 核验成功后可查看药品流通全链路\n4. 如发现异常请及时上报',
           showCancel: false,
         });
         break;
@@ -133,7 +138,7 @@ const ScanPage: React.FC = () => {
               </Button>
             </View>
             <Text className={styles.tip}>
-              示例: 8123456789012 (布洛芬), 8123456789023 (阿莫西林), 8123456789034 (感冒灵)
+              示例: 8123456789012 (布洛芬), 8123456789023 (阿莫西林), 8123456789034 (感冒灵-含召回)
             </Text>
           </View>
         </View>
